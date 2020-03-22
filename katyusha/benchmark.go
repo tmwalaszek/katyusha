@@ -110,7 +110,7 @@ type Benchmark struct {
 // manageWorkers is run in separate goroutine
 // It starts the workers goroutines and sends them signal to make a request via req channel
 func (b *Benchmark) manageWorkers(ctx context.Context) (chan *RequestStat, chan struct{}) {
-	statChan := make(chan *RequestStat) // Workers will sends stats through this channel
+	statChan := make(chan *RequestStat, b.ConcurrentConns) // Workers will sends stats through this channel
 	doneChan := make(chan struct{})
 
 	go func() {
