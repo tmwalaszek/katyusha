@@ -1,0 +1,5 @@
+---
+method: "GET"
+requests: 10
+concurrent_connections: 1
+abort_after: 1000
