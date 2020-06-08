@@ -138,6 +138,8 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 		if len(nameValueSplit) != 2 {
 			return nil, fmt.Errorf("Wrong HTTP parameter format: %s", value)
 		}
+
+		params[nameValueSplit[0]] = nameValueSplit[1]
 	}
 
 	return &katyusha.BenchmarkParameters{
