@@ -227,10 +227,11 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 		var reqCount, successReq, failReq, dataTransfered int
 		var start, end string
 		var duration, avgReq, minReq, maxReq time.Duration
+		var p50Req, p75Req, p90Req, p99Req time.Duration
 		var reqPerSec float64
 
 		err = rows.Scan(&id, &start, &end, &duration, &reqCount, &successReq, &failReq, &dataTransfered,
-			&reqPerSec, &avgReq, &minReq, &maxReq)
+			&reqPerSec, &avgReq, &minReq, &maxReq, &p50Req, &p75Req, &p90Req, &p99Req)
 		if err != nil {
 			return nil, err
 		}
@@ -259,6 +260,10 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 				AvgReqTime:     avgReq,
 				MinReqTime:     minReq,
 				MaxReqTime:     maxReq,
+				P50ReqTime:     p50Req,
+				P75ReqTime:     p75Req,
+				P90ReqTime:     p90Req,
+				P99ReqTime:     p99Req,
 			},
 		}
 
@@ -410,7 +415,7 @@ func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary
 		return fmt.Errorf("Can't start transaction: %v", err)
 	}
 
-	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
+	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
 	res, err := tx.ExecContext(ctx, query,
 		summary.Start.Format(time.RFC3339),
 		summary.End.Format(time.RFC3339),
@@ -423,6 +428,10 @@ func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary
 		summary.AvgReqTime,
 		summary.MinReqTime,
 		summary.MaxReqTime,
+		summary.P50ReqTime,
+		summary.P75ReqTime,
+		summary.P90ReqTime,
+		summary.P99ReqTime,
 		bcId,
 	)
 

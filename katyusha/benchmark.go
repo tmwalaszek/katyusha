@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"math"
+	"sort"
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -30,6 +32,20 @@ type RequestStat struct {
 	Error   error
 }
 
+type ReqTimes []time.Duration
+
+func (r ReqTimes) Len() int           { return len(r) }
+func (r ReqTimes) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r ReqTimes) Less(i, j int) bool { return r[i] < r[j] }
+
+// a ReqTimes needs to be sorted
+func percentil(a ReqTimes, q float64) time.Duration {
+	n := (q / 100) * float64(len(a))
+	p := int(math.Ceil(n))
+
+	return a[p-1]
+}
+
 // Summary struct provides benchmark end results.
 type Summary struct {
 	URL string
@@ -49,7 +65,16 @@ type Summary struct {
 	MinReqTime time.Duration // Min request time
 	MaxReqTime time.Duration // Max request time
 
+	P50ReqTime time.Duration // 50th percentile
+	P75ReqTime time.Duration // 75th percentile
+	P90ReqTime time.Duration // 90th percentile
+	P99ReqTime time.Duration // 99th percentile
+
+	StdDeviation float64 // Standard deviation
+
 	Errors map[string]int // Errors map. Key is the HTTP response code.
+
+	requestsTimes ReqTimes
 }
 
 func (s Summary) String() string {
@@ -66,9 +91,13 @@ func (s Summary) String() string {
   Average Request time:			%v
   Min Request time:			%v
   Max Request time:			%v
+  P50 Request time:			%v
+  P75 Request time:			%v
+  P90 Request time:			%v
+  P99 Request time:			%v
   Errors:				%v
 	`, s.URL, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
-		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.Errors)
+		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
 }
 
 // BenchmarkParameters is used to configure HTTP requests
@@ -107,7 +136,7 @@ type Benchmark struct {
 	client *fasthttp.Client
 }
 
-// manageWorkers is run in separate goroutine
+// manageWorkers runs in a separate goroutine
 // It starts the workers goroutines and sends them signal to make a request via req channel
 func (b *Benchmark) manageWorkers(ctx context.Context) (chan *RequestStat, chan struct{}) {
 	statChan := make(chan *RequestStat, b.ConcurrentConns) // Workers will sends stats through this channel
@@ -181,6 +210,7 @@ func (b *Benchmark) worker(req chan struct{}, statChan chan *RequestStat) chan s
 // It returns end results and can be start multiple times.
 func (b *Benchmark) StartBenchmark(ctx context.Context) *Summary {
 	var maxDuration, minDuration, avgDuration time.Duration
+
 	var success, fail int
 	var dataTransfered int
 	var reqPerSecond float64
@@ -192,19 +222,14 @@ func (b *Benchmark) StartBenchmark(ctx context.Context) *Summary {
 
 	statChan, doneChan := b.manageWorkers(ctx)
 
+	requestTimes := make(ReqTimes, 0)
 	start := time.Now()
 	// We are collecting results in this loop
 MAIN:
 	for {
 		select {
 		case stat := <-statChan:
-			if maxDuration < stat.Duration {
-				maxDuration = stat.Duration
-			}
-
-			if minDuration > stat.Duration || minDuration == 0 {
-				minDuration = stat.Duration
-			}
+			requestTimes = append(requestTimes, stat.Duration)
 
 			if stat.RetCode == 200 && stat.Error == nil {
 				success++
@@ -225,8 +250,6 @@ MAIN:
 				}
 			}
 
-			avgDuration += stat.Duration // In the loop we will sum everything in this varaible. Ourside of the loop we will divde by reqs count
-
 			if fail >= b.AbortAfter && b.AbortAfter != 0 {
 				cancel()
 				break MAIN
@@ -241,6 +264,20 @@ MAIN:
 	end := time.Now()
 	totalTime := time.Since(start)
 
+	sort.Sort(requestTimes)
+
+	minDuration = requestTimes[0]
+	maxDuration = requestTimes[len(requestTimes)-1]
+
+	for _, reqTime := range requestTimes {
+		avgDuration += reqTime
+	}
+
+	p50 := percentil(requestTimes, 50)
+	p75 := percentil(requestTimes, 75)
+	p90 := percentil(requestTimes, 90)
+	p99 := percentil(requestTimes, 99)
+
 	if success != 0 {
 		avgDuration = time.Duration(int64(avgDuration) / int64(success))
 	} else {
@@ -251,7 +288,6 @@ MAIN:
 
 	if totalTime > time.Duration(time.Second) {
 		reqPerSecond = float64(success) / float64(totalTime/time.Second)
-
 	} else {
 		reqPerSecond = float64(success)
 	}
@@ -269,6 +305,10 @@ MAIN:
 		AvgReqTime:     avgDuration,
 		MinReqTime:     minDuration,
 		MaxReqTime:     maxDuration,
+		P50ReqTime:     p50,
+		P75ReqTime:     p75,
+		P90ReqTime:     p90,
+		P99ReqTime:     p99,
 		Errors:         errors,
 	}
 
