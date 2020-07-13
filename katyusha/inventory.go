@@ -361,47 +361,11 @@ func (i *Inventory) DeleteBechmark(ctx context.Context, bcID int64) error {
 		return fmt.Errorf("Can't start transaction: %v", err)
 	}
 
-	summaries, err := i.FindSummaryForBenchmark(context.Background(), bcID)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Coould not receive benchmark summary: %v", err)
-	}
-
 	query := "DELETE FROM benchmark_configuration WHERE id = ?"
 	_, err = tx.ExecContext(ctx, query, bcID)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("Can't delete benchmark configuration: %v", err)
-	}
-
-	query = "DELETE FROM benchmark_summary WHERE benchmark_configuration = ?"
-	_, err = tx.ExecContext(ctx, query, bcID)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Can't delete benchmark configuration: %v", err)
-	}
-
-	query = "DELETE FROM headers WHERE benchmark_configuration = ?"
-	_, err = tx.ExecContext(ctx, query, bcID)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Can't delete benchmark configuration: %v", err)
-	}
-
-	query = "DELETE FROM parameters WHERE benchmark_configuration = ?"
-	_, err = tx.ExecContext(ctx, query, bcID)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Can't delete benchmark configuration: %v", err)
-	}
-
-	for _, summary := range summaries {
-		query = "DELETE FROM errors WHERE benchmark_summary = ?"
-		_, err = tx.ExecContext(ctx, query, summary.ID)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Can't delete benchmark summary: %v", err)
-		}
 	}
 
 	err = tx.Commit()
