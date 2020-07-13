@@ -30,7 +30,8 @@ CREATE TABLE headers (
     value TEXT,
     benchmark_configuration INTEGER,    
 
-    FOREIGN KEY(benchmark_configuration) REFERENCES benchmark_configuration(id) 
+    FOREIGN KEY(benchmark_configuration) REFERENCES benchmark_configuration(id)
+    ON DELETE CASCADE
 );
 
 CREATE TABLE parameters (
@@ -40,6 +41,7 @@ CREATE TABLE parameters (
     benchmark_configuration INTEGER,
 
     FOREIGN KEY(benchmark_configuration) REFERENCES benchmark_configuration(id) 
+    ON DELETE CASCADE
 );
 
 CREATE TABLE benchmark_summary (
@@ -62,6 +64,7 @@ CREATE TABLE benchmark_summary (
     benchmark_configuration INTEGER,
 
     FOREIGN KEY(benchmark_configuration) REFERENCES benchmark_configuration(id)
+    ON DELETE CASCADE
 );
 
 CREATE TABLE errors (
@@ -70,5 +73,6 @@ CREATE TABLE errors (
     count INTEGER,
     benchmark_summary INTEGER,
 
-    FOREIGN KEY(benchmark_summary) REFERENCES benchmark_summary(id) ON DELETE CASCADE
+    FOREIGN KEY(benchmark_summary) REFERENCES benchmark_summary(id) 
+    ON DELETE CASCADE
 );`
