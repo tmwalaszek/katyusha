@@ -66,7 +66,7 @@ type Summary struct {
 	MaxReqTime time.Duration // Max request time
 
 	P50ReqTime time.Duration // 50th percentile
-	P75Reqtime time.Duration // 75th percentile
+	P75ReqTime time.Duration // 75th percentile
 	P90ReqTime time.Duration // 90th percentile
 	P99ReqTime time.Duration // 99th percentile
 
@@ -91,9 +91,13 @@ func (s Summary) String() string {
   Average Request time:			%v
   Min Request time:			%v
   Max Request time:			%v
+  P50 Request time:			%v
+  P75 Request time:			%v
+  P90 Request time:			%v
+  P99 Request time:			%v
   Errors:				%v
 	`, s.URL, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
-		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.Errors)
+		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
 }
 
 // BenchmarkParameters is used to configure HTTP requests
@@ -302,7 +306,7 @@ MAIN:
 		MinReqTime:     minDuration,
 		MaxReqTime:     maxDuration,
 		P50ReqTime:     p50,
-		P75Reqtime:     p75,
+		P75ReqTime:     p75,
 		P90ReqTime:     p90,
 		P99ReqTime:     p99,
 		Errors:         errors,

@@ -63,6 +63,10 @@ func TestInventory(t *testing.T) {
 		AvgReqTime:     time.Duration(352 * time.Millisecond),
 		MinReqTime:     time.Duration(81 * time.Millisecond),
 		MaxReqTime:     time.Duration(1 * time.Second),
+		P50ReqTime:     time.Duration(50 * time.Second),
+		P75ReqTime:     time.Duration(75 * time.Second),
+		P90ReqTime:     time.Duration(90 * time.Second),
+		P99ReqTime:     time.Duration(99 * time.Second),
 		Errors:         make(map[string]int),
 	}
 
