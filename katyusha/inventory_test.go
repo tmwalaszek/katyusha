@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestInventory(t *testing.T) {
@@ -75,7 +76,8 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("Coould not receive benchmark summary; %v", err)
 	}
 
-	if diff := cmp.Diff(*summary, sm[0].Summary); diff != "" {
+	var r ReqTimes
+	if diff := cmp.Diff(*summary, sm[0].Summary, cmpopts.IgnoreTypes(r)); diff != "" {
 		t.Errorf("Benchmark summary mismatch (-want +got):\n%s", diff)
 	}
 
