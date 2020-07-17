@@ -90,9 +90,42 @@ func NewInventory(dbFile string) (*Inventory, error) {
 	}, nil
 }
 
+func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map[string]string, error) {
+	query := "SELECT value FROM parameters where benchmark_configuration = ?"
+
+	rows, err := i.db.QueryContext(ctx, query, bcId)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	results := make([]map[string]string, 0)
+
+	for rows.Next() {
+		var value string
+		p := make(map[string]string)
+		err = rows.Scan(&value)
+		
+		if err != nil {
+			return nil, err
+		}
+
+		for _, val := strings.Split(value, "&") {
+			arg := strings.Split(val, "=")
+			if len(arg) != 2 {
+				return nil, fmt.Errorf("Wrong HTTP parameter format: %s", arg)
+			}
+
+			p[arg[0]] = p[arg[1]]
+		}
+
+		results = append(results, p)
+	}
+}
+
 // querykeyValueTable is used to read table parameters and headers
 func (i *Inventory) queryKeyValueTable(ctx context.Context, table string, bcId int64) (map[string]string, error) {
-	query := fmt.Sprintf("SELECT name,value FROM %s WHERE benchmark_configuration = ?", table)
+	query := fmt.Sprintf("SELECT value FROM %s WHERE benchmark_configuration = ?", table)
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
 	if err != nil {

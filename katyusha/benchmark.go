@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -122,7 +123,7 @@ type BenchmarkParameters struct {
 	WriteTimeout time.Duration
 
 	Headers    map[string]string
-	Parameters map[string]string
+	Parameters []map[string]string
 
 	Body []byte
 }
@@ -376,8 +377,11 @@ func (b *Benchmark) doRequest() *RequestStat {
 		req.Header.Add(key, value)
 	}
 
+	rand.Seed(time.Now().Unix())
+	r := rand.Intn(len(b.Parameters))
+
 	// Set args if any
-	for key, value := range b.Parameters {
+	for key, value := range b.Parameters[r] {
 		args.Add(key, value)
 	}
 

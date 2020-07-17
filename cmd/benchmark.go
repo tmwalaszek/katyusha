@@ -122,7 +122,7 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 	}
 
 	headers := make(map[string]string)
-	params := make(map[string]string)
+	params := make([]map[string]string, 0)
 
 	for _, value := range viper.GetStringSlice("header") {
 		colonSplit := strings.Split(value, ":")
@@ -134,12 +134,17 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 	}
 
 	for _, value := range viper.GetStringSlice("parameter") {
-		nameValueSplit := strings.Split(value, "=")
-		if len(nameValueSplit) != 2 {
-			return nil, fmt.Errorf("Wrong HTTP parameter format: %s", value)
-		}
+		argumentsSplit := strings.Split(value, "&")
+		p := make(map[string]string)
+		for _, arg := range argumentsSplit {
+			nameValueSplit := strings.Split(arg, "=")
+			if len(nameValueSplit) != 2 {
+				return nil, fmt.Errorf("Wrong HTTP parameter format: %s", arg)
+			}
 
-		params[nameValueSplit[0]] = nameValueSplit[1]
+			p[nameValueSplit[0]] = nameValueSplit[1]
+		}
+		params = append(params, p)
 	}
 
 	return &katyusha.BenchmarkParameters{

@@ -26,8 +26,7 @@ var schema = `CREATE TABLE benchmark_configuration (
 
 CREATE TABLE headers (
     id INTEGER PRIMARY KEY,
-    name TEXT,
-    value TEXT,
+    header TEXT,
     benchmark_configuration INTEGER,    
 
     FOREIGN KEY(benchmark_configuration) REFERENCES benchmark_configuration(id)
@@ -36,8 +35,7 @@ CREATE TABLE headers (
 
 CREATE TABLE parameters (
     id INTEGER PRIMARY KEY,
-    name TEXT,
-    value TEXT,
+    parameter TEXT,
     benchmark_configuration INTEGER,
 
     FOREIGN KEY(benchmark_configuration) REFERENCES benchmark_configuration(id) 
