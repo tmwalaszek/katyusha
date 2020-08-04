@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -121,30 +120,21 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 		return nil, fmt.Errorf("Host not provided")
 	}
 
-	headers := make(map[string]string)
-	params := make([]map[string]string, 0)
+	headers := katyusha.NewHeader()
+	params := katyusha.NewParameter()
 
 	for _, value := range viper.GetStringSlice("header") {
-		colonSplit := strings.Split(value, ":")
-		if len(colonSplit) != 2 {
-			return nil, fmt.Errorf("Wrong HTTP Header format: %s", value)
+		err := headers.Set(value)
+		if err != nil {
+			return nil, err
 		}
-
-		headers[colonSplit[0]] = colonSplit[1]
 	}
 
 	for _, value := range viper.GetStringSlice("parameter") {
-		argumentsSplit := strings.Split(value, "&")
-		p := make(map[string]string)
-		for _, arg := range argumentsSplit {
-			nameValueSplit := strings.Split(arg, "=")
-			if len(nameValueSplit) != 2 {
-				return nil, fmt.Errorf("Wrong HTTP parameter format: %s", arg)
-			}
-
-			p[nameValueSplit[0]] = nameValueSplit[1]
+		err := params.Set(value)
+		if err != nil {
+			return nil, err
 		}
-		params = append(params, p)
 	}
 
 	return &katyusha.BenchmarkParameters{

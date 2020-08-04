@@ -169,8 +169,8 @@ type BenchmarkParameters struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 
-	Headers    map[string]string
-	Parameters []map[string]string
+	Headers    headers
+	Parameters parameters
 
 	Body []byte
 }

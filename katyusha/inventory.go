@@ -408,7 +408,7 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 }
 
 // DeleteBenchmark deletes benchmark configuration and all associated summaries
-func (i *Inventory) DeleteBechmark(ctx context.Context, bcID int64) error {
+func (i *Inventory) DeleteBenchmark(ctx context.Context, bcID int64) error {
 	tx, err := i.db.Begin()
 	if err != nil {
 		return fmt.Errorf("Can't start transaction: %v", err)

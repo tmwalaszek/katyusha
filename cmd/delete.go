@@ -19,7 +19,7 @@ var deleteCmd = &cobra.Command{
 			log.Fatalf("Can't initialize database: %v", err)
 		}
 
-		err = inv.DeleteBechmark(context.Background(), viper.GetInt64("benchmark"))
+		err = inv.DeleteBenchmark(context.Background(), viper.GetInt64("benchmark"))
 		if err != nil {
 			log.Fatalf("Can't remove benchmark configuration: %v", err)
 		}
