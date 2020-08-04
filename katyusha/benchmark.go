@@ -43,7 +43,7 @@ func (r ReqTimes) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r ReqTimes) Less(i, j int) bool { return r[i] < r[j] }
 
 // a ReqTimes needs to be sorted
-func percentil(a ReqTimes, q float64) time.Duration {
+func percentile(a ReqTimes, q float64) time.Duration {
 	n := (q / 100) * float64(len(a))
 	p := int(math.Ceil(n))
 
@@ -321,10 +321,10 @@ MAIN:
 		avgDuration += reqTime
 	}
 
-	p50 := percentil(requestTimes, 50)
-	p75 := percentil(requestTimes, 75)
-	p90 := percentil(requestTimes, 90)
-	p99 := percentil(requestTimes, 99)
+	p50 := percentile(requestTimes, 50)
+	p75 := percentile(requestTimes, 75)
+	p90 := percentile(requestTimes, 90)
+	p99 := percentile(requestTimes, 99)
 
 	if success != 0 {
 		avgDuration = time.Duration(int64(avgDuration) / int64(success))
