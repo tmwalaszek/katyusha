@@ -91,7 +91,7 @@ func NewInventory(dbFile string) (*Inventory, error) {
 	}, nil
 }
 
-func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map[string]string, error) {
+func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (parameters, error) {
 	query := "SELECT parameter FROM parameters where benchmark_configuration = ?"
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
@@ -100,27 +100,20 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map
 	}
 
 	defer rows.Close()
-	results := make([]map[string]string, 0)
+	results := NewParameter()
 
 	for rows.Next() {
 		var value string
-		p := make(map[string]string)
 		err = rows.Scan(&value)
 
 		if err != nil {
 			return nil, err
 		}
 
-		for _, val := range strings.Split(value, "&") {
-			arg := strings.Split(val, "=")
-			if len(arg) != 2 {
-				return nil, fmt.Errorf("Wrong HTTP parameter format: %s", arg)
-			}
-
-			p[arg[0]] = p[arg[1]]
+		err = results.Set(value)
+		if err != nil {
+			return nil, err
 		}
-
-		results = append(results, p)
 	}
 
 	rerr := rows.Close()
@@ -136,7 +129,7 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map
 }
 
 // querykeyValueTable is used to read table parameters and headers
-func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (map[string]string, error) {
+func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (headers, error) {
 	query := "SELECT header FROM headers WHERE benchmark_configuration = ?"
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
@@ -145,7 +138,7 @@ func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (map[stri
 	}
 
 	defer rows.Close()
-	results := make(map[string]string)
+	results := NewHeader()
 
 	for rows.Next() {
 		var header string
@@ -154,15 +147,10 @@ func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (map[stri
 			return nil, err
 		}
 
-		headerSplit := strings.Split(header, ":")
-		if len(headerSplit) != 2 {
-			return nil, fmt.Errorf("Wrong header saved in database")
+		err = results.Set(header)
+		if err != nil {
+			return nil, err
 		}
-
-		name := headerSplit[0]
-		value := headerSplit[1]
-
-		results[name] = value
 	}
 
 	rerr := rows.Close()
