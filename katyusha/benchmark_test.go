@@ -3,6 +3,7 @@ package katyusha
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"io/ioutil"
 	"net"
 	"testing"
@@ -14,6 +15,139 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttputil"
 )
+
+func TestHeader(t *testing.T) {
+	tt := []struct {
+		headers  []string
+		expected headers
+		match    bool
+	}{
+		{
+			headers: []string{"Location: http://www.google.pl/"},
+			expected: headers{
+				"Location": "http://www.google.pl/",
+			},
+			match: true,
+		},
+		{
+			headers: []string{"Location: http://www.google.pl/", "Content-Type: text/html; charset=UTF-8"},
+			expected: headers{
+				"Location":     "http://www.google.pl/",
+				"Content-Type": "text/html; charset=UTF-8",
+			},
+			match: true,
+		},
+		{
+			headers: []string{"Location http://www"},
+			expected: headers{
+				"Location": "http://www",
+			},
+			match: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(fmt.Sprintf("Header test %s", tc.headers), func(t *testing.T) {
+			h := NewHeader()
+
+			for _, header := range tc.headers {
+				err := h.Set(header)
+				if tc.match && err != nil {
+					t.Fatalf("Can't prase %s error %v", tc.headers, err)
+				}
+
+				if !tc.match && err == nil {
+					t.Fatalf("Parameter %s should not be parsed", tc.headers)
+				}
+			}
+
+			if !tc.match {
+				return
+			}
+
+			if diff := cmp.Diff(tc.expected, h); diff != "" {
+				t.Fatalf("Header mismatch (-want +got):\n %s", diff)
+			}
+		})
+	}
+}
+
+func TestParameter(t *testing.T) {
+	tt := []struct {
+		parameters []string
+		expected   parameters
+		match      bool
+	}{
+		{
+			parameters: []string{"key1=val1&key2=val2"},
+			expected: parameters{
+				{
+					"key1": "val1",
+					"key2": "val2",
+				},
+			},
+			match: true,
+		},
+		{
+			parameters: []string{"key1=val1"},
+			expected: parameters{
+				{
+					"key1": "val1",
+				},
+			},
+			match: true,
+		},
+		{
+			parameters: []string{"key1=val1&key2=val2", "key3=val3&key4=val4"},
+			expected: parameters{
+				{
+					"key1": "val1",
+					"key2": "val2",
+				},
+				{
+					"key3": "val3",
+					"key4": "val4",
+				},
+			},
+			match: true,
+		},
+		{
+			parameters: []string{"key1"},
+			expected: parameters{
+				{
+					"key1": "",
+				},
+			},
+			match: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(fmt.Sprintf("Parameter %s", tc.parameters), func(t *testing.T) {
+			p := NewParameter()
+
+			for _, parameter := range tc.parameters {
+				err := p.Set(parameter)
+
+				if tc.match && err != nil {
+					t.Fatalf("Can't prase %s error %v", tc.parameters, err)
+				}
+
+				if !tc.match && err == nil {
+					t.Fatalf("Parameter %s should not be parsed", tc.parameters)
+				}
+			}
+
+			if !tc.match {
+				return
+			}
+
+			if diff := cmp.Diff(tc.expected, p); diff != "" {
+				t.Fatalf("Parameter mismatch (-want +got):\n %s", diff)
+			}
+		})
+	}
+}
 
 func TestOneRequest(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -87,8 +221,8 @@ func TestGetRequestWithArgs(t *testing.T) {
 		Method:          "GET",
 		ConcurrentConns: 1,
 		ReqCount:        1,
-		Parameters: map[string]string{
-			"key": "value",
+		Parameters: []map[string]string{
+			{"key": "value"},
 		},
 	}
 
@@ -123,8 +257,8 @@ func TestPostRequestWithArgs(t *testing.T) {
 		Method:          "POST",
 		ConcurrentConns: 1,
 		ReqCount:        1,
-		Parameters: map[string]string{
-			"key": "value",
+		Parameters: []map[string]string{
+			{"key": "value"},
 		},
 	}
 

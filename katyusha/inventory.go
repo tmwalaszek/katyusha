@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -91,7 +92,7 @@ func NewInventory(dbFile string) (*Inventory, error) {
 }
 
 func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map[string]string, error) {
-	query := "SELECT value FROM parameters where benchmark_configuration = ?"
+	query := "SELECT parameter FROM parameters where benchmark_configuration = ?"
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
 	if err != nil {
@@ -105,12 +106,12 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map
 		var value string
 		p := make(map[string]string)
 		err = rows.Scan(&value)
-		
+
 		if err != nil {
 			return nil, err
 		}
 
-		for _, val := strings.Split(value, "&") {
+		for _, val := range strings.Split(value, "&") {
 			arg := strings.Split(val, "=")
 			if len(arg) != 2 {
 				return nil, fmt.Errorf("Wrong HTTP parameter format: %s", arg)
@@ -121,11 +122,22 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) ([]map
 
 		results = append(results, p)
 	}
+
+	rerr := rows.Close()
+	if rerr != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 // querykeyValueTable is used to read table parameters and headers
-func (i *Inventory) queryKeyValueTable(ctx context.Context, table string, bcId int64) (map[string]string, error) {
-	query := fmt.Sprintf("SELECT value FROM %s WHERE benchmark_configuration = ?", table)
+func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (map[string]string, error) {
+	query := "SELECT header FROM headers WHERE benchmark_configuration = ?"
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
 	if err != nil {
@@ -136,11 +148,19 @@ func (i *Inventory) queryKeyValueTable(ctx context.Context, table string, bcId i
 	results := make(map[string]string)
 
 	for rows.Next() {
-		var name, value string
-		err = rows.Scan(&name, &value)
+		var header string
+		err = rows.Scan(&header)
 		if err != nil {
 			return nil, err
 		}
+
+		headerSplit := strings.Split(header, ":")
+		if len(headerSplit) != 2 {
+			return nil, fmt.Errorf("Wrong header saved in database")
+		}
+
+		name := headerSplit[0]
+		value := headerSplit[1]
 
 		results[name] = value
 	}
@@ -338,12 +358,12 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 			return nil, err
 		}
 
-		headers, err := i.queryKeyValueTable(ctx, "headers", id)
+		headers, err := i.queryHeadersTable(ctx, id)
 		if err != nil {
 			return nil, err
 		}
 
-		parameters, err := i.queryKeyValueTable(ctx, "parameters", id)
+		parameters, err := i.queryParametersTable(ctx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -511,23 +531,33 @@ func (i *Inventory) InsertBenchmarkConfiguration(ctx context.Context, benchParam
 		return 0, fmt.Errorf("Can't get benchmark configuration ID: %v", err)
 	}
 
-	query = "INSERT INTO headers(name,value,benchmark_configuration) VALUES(?,?,?)"
+	query = "INSERT INTO headers(header,benchmark_configuration) VALUES(?,?)"
 
 	for key, value := range benchParameters.Headers {
-		_, err := tx.ExecContext(ctx, query, key, value, bcID)
+		header := strings.Join([]string{key, value}, ":")
+		_, err := tx.ExecContext(ctx, query, header, bcID)
 		if err != nil {
 			tx.Rollback()
 			return 0, fmt.Errorf("Can't create header: %v", err)
 		}
 	}
 
-	query = "INSERT INTO parameters(name,value,benchmark_configuration) VALUES(?,?,?)"
+	query = "INSERT INTO parameters(parameter,benchmark_configuration) VALUES(?,?,?)"
 
-	for key, value := range benchParameters.Parameters {
-		_, err := tx.ExecContext(ctx, query, key, value, bcID)
+	for _, params := range benchParameters.Parameters {
+		var i int
+		parameters := make([]string, len(params))
+		for key, value := range params {
+			keyValue := strings.Join([]string{key, value}, "=")
+			parameters[i] = keyValue
+			i++
+		}
+
+		parameterString := strings.Join(parameters, "&")
+		_, err := tx.ExecContext(ctx, query, parameterString, bcID)
 		if err != nil {
 			tx.Rollback()
-			return 0, fmt.Errorf("Can't create query arg: %v", err)
+			return 0, fmt.Errorf("Can't create parameter: %v", err)
 		}
 	}
 

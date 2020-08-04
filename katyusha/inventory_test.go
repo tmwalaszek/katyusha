@@ -25,7 +25,7 @@ func TestInventory(t *testing.T) {
 	}
 
 	b.Headers = map[string]string{}
-	b.Parameters = map[string]string{}
+	b.Parameters = []map[string]string{}
 
 	bcID, err := inv.InsertBenchmarkConfiguration(context.Background(), b, "Test description")
 	if err != nil {

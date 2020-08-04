@@ -8,7 +8,9 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -19,6 +21,7 @@ import (
 // I don't have better place for this variable now
 const (
 	KatyushaName = "Katyusha 1.0"
+	headerRegexp = `^([\w-]+):\s*(.+)`
 )
 
 // RequestStat describe HTTP request status
@@ -99,6 +102,50 @@ func (s Summary) String() string {
   Errors:				%v
 	`, s.URL, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
 		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
+}
+
+type headers map[string]string
+
+func NewHeader() headers {
+	h := make(headers)
+	return h
+}
+
+func (h headers) Set(value string) error {
+	r := regexp.MustCompile(headerRegexp)
+	matches := r.FindStringSubmatch(value)
+
+	if len(matches) < 3 {
+		return fmt.Errorf("Can't parse header %s", value)
+	}
+
+	h[matches[1]] = matches[2]
+	return nil
+}
+
+type parameters []map[string]string
+
+func NewParameter() parameters {
+	p := make(parameters, 0)
+	return p
+}
+
+// value needs to in format "key1=value2&key2=value2
+func (p *parameters) Set(value string) error {
+	paramsMap := make(map[string]string)
+	parameters := strings.Split(value, "&")
+
+	for _, param := range parameters {
+		keyValue := strings.Split(param, "=")
+		if len(keyValue) != 2 {
+			return fmt.Errorf("Can't parse parameter %s", value)
+		}
+
+		paramsMap[keyValue[0]] = keyValue[1]
+	}
+
+	*p = append(*p, paramsMap)
+	return nil
 }
 
 // BenchmarkParameters is used to configure HTTP requests
@@ -377,12 +424,14 @@ func (b *Benchmark) doRequest() *RequestStat {
 		req.Header.Add(key, value)
 	}
 
-	rand.Seed(time.Now().Unix())
-	r := rand.Intn(len(b.Parameters))
+	if len(b.Parameters) > 0 {
+		rand.Seed(time.Now().Unix())
+		r := rand.Intn(len(b.Parameters))
 
-	// Set args if any
-	for key, value := range b.Parameters[r] {
-		args.Add(key, value)
+		// Set args if any
+		for key, value := range b.Parameters[r] {
+			args.Add(key, value)
+		}
 	}
 
 	if b.Method == fasthttp.MethodGet {
