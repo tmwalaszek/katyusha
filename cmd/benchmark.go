@@ -102,10 +102,13 @@ var benchmarkCmd = &cobra.Command{
 			}
 		}
 
-		summary := benchmark.StartBenchmark(ctx)
-		fmt.Println(summary)
+		var summary *katyusha.Summary
+		if !viper.GetBool("norun") {
+			summary = benchmark.StartBenchmark(ctx)
+			fmt.Println(summary)
+		}
 
-		if viper.GetBool("save") {
+		if !viper.GetBool("norun") && viper.GetBool("save") {
 			err = inv.InsertBenchmarkSummary(ctx, summary, bcID)
 			if err != nil {
 				log.Fatalf("Error saving summary: %v", err)
@@ -167,6 +170,7 @@ func init() {
 	benchmarkCmd.Flags().StringP("key", "K", "", "Key path")
 	benchmarkCmd.Flags().BoolP("save", "S", false, "Save benchamrk configuration and result")
 	benchmarkCmd.Flags().BoolP("insecure", "i", false, "TLS Skip verify")
+	benchmarkCmd.Flags().BoolP("norun", "N", false, "Do not start benchmark")
 	benchmarkCmd.Flags().DurationP("duration", "d", time.Duration(0), "Benchmark duration")
 	benchmarkCmd.Flags().DurationP("keep_alive", "k", time.Duration(0), "HTTP Keep Alive")
 	benchmarkCmd.Flags().DurationP("request_delay", "D", time.Duration(0), "Request delay")
