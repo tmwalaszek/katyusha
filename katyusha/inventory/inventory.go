@@ -62,6 +62,8 @@ func NewInventory(dbType string, connString string) (Inventory, error) {
 	var err error
 	if dbType == strings.ToLower("sqlite") {
 		inventory, err = NewSQLite(connString)
+	} else {
+		err = fmt.Errorf("Unkown database type: %s", dbType)
 	}
 
 	return inventory, err

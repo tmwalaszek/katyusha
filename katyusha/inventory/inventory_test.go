@@ -11,8 +11,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func TestInventory(t *testing.T) {
-	inv, err := NewInventory("pliczek.db")
+func TestSQLite(t *testing.T) {
+	inv, err := NewInventory("sqlite", "pliczek.db")
 	if err != nil {
 		t.Fatalf("Can't create database file: %v", err)
 	}
