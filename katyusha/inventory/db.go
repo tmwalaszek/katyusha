@@ -4,12 +4,31 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/mattn/go-sqlite3"
 	"github.com/tmwalaszek/katyusha/katyusha"
+	"strings"
 	"time"
 )
 
 type DB struct {
 	db *sql.DB
+}
+
+func (d *DB) deleteBenchmark(ctx context.Context, bcID int64) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return fmt.Errorf("Can't start transaction: %v", err)
+	}
+
+	query := "DELETE FROM benchmark_configuration WHERE id = ?"
+	_, err = tx.ExecContext(ctx, query, bcID)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("Can't delete benchmark configuration: %v", err)
+	}
+
+	err = tx.Commit()
+	return err
 }
 
 func (d *DB) queryParametersTable(ctx context.Context, bcId int64) (katyusha.Parameters, error) {
@@ -265,4 +284,129 @@ func (d *DB) queryBenchmark(ctx context.Context, query string, args ...interface
 	}
 
 	return results, nil
+}
+
+func (d *DB) insertBenchmarkSummary(ctx context.Context, summary *katyusha.Summary, bcId int64, insertSummary, insertErrors string) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return fmt.Errorf("Can't start transaction: %v", err)
+	}
+
+	res, err := tx.ExecContext(ctx, insertSummary,
+		summary.Start.Format(time.RFC3339),
+		summary.End.Format(time.RFC3339),
+		summary.TotalTime,
+		summary.ReqCount,
+		summary.SuccessReq,
+		summary.FailReq,
+		summary.DataTransfered,
+		summary.ReqPerSec,
+		summary.AvgReqTime,
+		summary.MinReqTime,
+		summary.MaxReqTime,
+		summary.P50ReqTime,
+		summary.P75ReqTime,
+		summary.P90ReqTime,
+		summary.P99ReqTime,
+		bcId,
+	)
+
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("Can't create summary in database: %v", err)
+	}
+
+	smId, err := res.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("Can't get summary ID: %v", err)
+	}
+
+	for name, count := range summary.Errors {
+		_, err := tx.ExecContext(ctx, insertErrors, name, count, smId)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("Can't create error for summary: %v", err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("Can't commit summary: %v", err)
+	}
+
+	return nil
+}
+
+func (d *DB) insertBenchmarkConfiguration(ctx context.Context, benchParameters *katyusha.BenchmarkParameters, description, benchmarkInsert, headersInsert, parametersInsert string) (int64, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("Can't start transaction: %v", err)
+	}
+
+	res, err := tx.ExecContext(ctx, benchmarkInsert,
+		description,
+		benchParameters.URL,
+		benchParameters.Method,
+		benchParameters.ReqCount,
+		benchParameters.ConcurrentConns,
+		boolToInt(benchParameters.SkipVerify),
+		benchParameters.AbortAfter,
+		benchParameters.CA,
+		benchParameters.Cert,
+		benchParameters.Key,
+		benchParameters.Duration,
+		benchParameters.KeepAlive,
+		benchParameters.RequestDelay,
+		benchParameters.ReadTimeout,
+		benchParameters.WriteTimeout,
+		benchParameters.Body)
+
+	if err != nil {
+		tx.Rollback()
+		if sqliteErr, ok := err.(sqlite3.Error); ok {
+			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return 0, sqliteErr
+			}
+		}
+
+		return 0, fmt.Errorf("Can't create benchmark configuration in database: %v", err)
+	}
+
+	bcID, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("Can't get benchmark configuration ID: %v", err)
+	}
+
+	for key, value := range benchParameters.Headers {
+		header := strings.Join([]string{key, value}, ":")
+		_, err := tx.ExecContext(ctx, headersInsert, header, bcID)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("Can't create header: %v", err)
+		}
+	}
+
+	for _, params := range benchParameters.Parameters {
+		var i int
+		parameters := make([]string, len(params))
+		for key, value := range params {
+			keyValue := strings.Join([]string{key, value}, "=")
+			parameters[i] = keyValue
+			i++
+		}
+
+		parameterString := strings.Join(parameters, "&")
+		_, err := tx.ExecContext(ctx, parametersInsert, parameterString, bcID)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("Can't create parameter: %v", err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, fmt.Errorf("Can't save benchmark configuration: %v", err)
+	}
+
+	return bcID, nil
 }

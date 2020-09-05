@@ -2,13 +2,11 @@ package inventory
 
 import (
 	"context"
-	"fmt"
 	"database/sql"
+	"fmt"
 	"github.com/mattn/go-sqlite3"
 	"github.com/tmwalaszek/katyusha/katyusha"
 	"os"
-	"strings"
-	"time"
 )
 var SQLiteSchema = `CREATE TABLE benchmark_configuration (
     id INTEGER PRIMARY KEY,
@@ -174,162 +172,41 @@ func (s *SQLite) FindSummaryForBenchmark(ctx context.Context, bcID int64) ([]*Be
 
 // DeleteBenchmark deletes benchmark configuration and all associated summaries
 func (s *SQLite) DeleteBenchmark(ctx context.Context, bcID int64) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("Can't start transaction: %v", err)
-	}
+	err := s.deleteBenchmark(ctx, bcID)
 
-	query := "DELETE FROM benchmark_configuration WHERE id = ?"
-	_, err = tx.ExecContext(ctx, query, bcID)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Can't delete benchmark configuration: %v", err)
-	}
-
-	err = tx.Commit()
 	return err
 }
 
 // InsertBenchmarkSummary creates summary for specific benchmark configuration
-func (s *SQLite) InsertBenchmarkSummary(ctx context.Context, summary *katyusha.Summary, bcId int64) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("Can't start transaction: %v", err)
-	}
+func (s *SQLite) InsertBenchmarkSummary(ctx context.Context, summary *katyusha.Summary, bcID int64) error {
+	insertSummaryQuery := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
+	insertErrorsQuery := "INSERT INTO errors(name,count,benchmark_summary) VALUES(?,?,?)"
 
-	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
-	res, err := tx.ExecContext(ctx, query,
-		summary.Start.Format(time.RFC3339),
-		summary.End.Format(time.RFC3339),
-		summary.TotalTime,
-		summary.ReqCount,
-		summary.SuccessReq,
-		summary.FailReq,
-		summary.DataTransfered,
-		summary.ReqPerSec,
-		summary.AvgReqTime,
-		summary.MinReqTime,
-		summary.MaxReqTime,
-		summary.P50ReqTime,
-		summary.P75ReqTime,
-		summary.P90ReqTime,
-		summary.P99ReqTime,
-		bcId,
-	)
-
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("Can't create summary in database: %v", err)
-	}
-
-	smId, err := res.LastInsertId()
-	if err != nil {
-		return fmt.Errorf("Can't get summary ID: %v", err)
-	}
-
-	query = "INSERT INTO errors(name,count,benchmark_summary) VALUES(?,?,?)"
-	for name, count := range summary.Errors {
-		_, err := tx.ExecContext(ctx, query, name, count, smId)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("Can't create error for summary: %v", err)
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("Can't commit summary: %v", err)
-	}
-
-	return nil
+	err := s.insertBenchmarkSummary(ctx, summary, bcID, insertSummaryQuery, insertErrorsQuery)
+	return err
 }
 
 // InsertBenchmarkConfiguration creates new benchmark configuration with unique url and description
 func (s *SQLite) InsertBenchmarkConfiguration(ctx context.Context, benchParameters *katyusha.BenchmarkParameters, description string) (int64, error) {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return 0, fmt.Errorf("Can't start transaction: %v", err)
-	}
+	benchmarkInsert := fmt.Sprintf("INSERT INTO benchmark_configuration(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", benchmarkFields)
+	headersInsert := "INSERT INTO headers(header,benchmark_configuration) VALUES(?,?)"
+	parametersInsert := "INSERT INTO parameters(parameter,benchmark_configuration) VALUES(?,?,?)"
 
-	query := fmt.Sprintf("INSERT INTO benchmark_configuration(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", benchmarkFields)
-
-	res, err := tx.ExecContext(ctx, query,
-		description,
-		benchParameters.URL,
-		benchParameters.Method,
-		benchParameters.ReqCount,
-		benchParameters.ConcurrentConns,
-		boolToInt(benchParameters.SkipVerify),
-		benchParameters.AbortAfter,
-		benchParameters.CA,
-		benchParameters.Cert,
-		benchParameters.Key,
-		benchParameters.Duration,
-		benchParameters.KeepAlive,
-		benchParameters.RequestDelay,
-		benchParameters.ReadTimeout,
-		benchParameters.WriteTimeout,
-		benchParameters.Body)
-
-	if err != nil {
-		tx.Rollback()
-		if sqliteErr, ok := err.(sqlite3.Error); ok {
-			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-				bc, err := s.FindBenchmark(ctx, benchParameters.URL, description)
-				if err != nil {
-					return 0, err
-				}
-
-				if bc != nil {
-					return 0, fmt.Errorf("Benchmark with provided URL and Description already exists (id %d)", bc.ID)
-				}
-
-				return int64(bc.ID), nil
+	id, err := s.insertBenchmarkConfiguration(ctx, benchParameters, description, benchmarkInsert, headersInsert, parametersInsert)
+	if sqliteErr, ok := err.(sqlite3.Error); ok {
+		if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+			bc, err := s.FindBenchmark(ctx, benchParameters.URL, description)
+			if err != nil {
+				return 0, err
 			}
-		}
 
-		return 0, fmt.Errorf("Can't create benchmark configuration in database: %v", err)
-	}
+			if bc != nil {
+				return 0, fmt.Errorf("Benchmark with provided URL and Description already exists (id %d)", bc.ID)
+			}
 
-	bcID, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("Can't get benchmark configuration ID: %v", err)
-	}
-
-	query = "INSERT INTO headers(header,benchmark_configuration) VALUES(?,?)"
-
-	for key, value := range benchParameters.Headers {
-		header := strings.Join([]string{key, value}, ":")
-		_, err := tx.ExecContext(ctx, query, header, bcID)
-		if err != nil {
-			tx.Rollback()
-			return 0, fmt.Errorf("Can't create header: %v", err)
+			return int64(bc.ID), nil
 		}
 	}
 
-	query = "INSERT INTO parameters(parameter,benchmark_configuration) VALUES(?,?,?)"
-
-	for _, params := range benchParameters.Parameters {
-		var i int
-		parameters := make([]string, len(params))
-		for key, value := range params {
-			keyValue := strings.Join([]string{key, value}, "=")
-			parameters[i] = keyValue
-			i++
-		}
-
-		parameterString := strings.Join(parameters, "&")
-		_, err := tx.ExecContext(ctx, query, parameterString, bcID)
-		if err != nil {
-			tx.Rollback()
-			return 0, fmt.Errorf("Can't create parameter: %v", err)
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return 0, fmt.Errorf("Can't save benchmark configuration: %v", err)
-	}
-
-	return bcID, nil
+	return id, err
 }
