@@ -21,7 +21,7 @@ var showBenchmarkCmd = &cobra.Command{
 		var bcs []*inventory.BenchmarkConfiguration
 		var err error
 
-		inv, err := inventory.NewInventory(viper.GetString("db"))
+		inv, err := inventory.NewInventory("sqlite", viper.GetString("db"))
 		if err != nil {
 			log.Fatalf("Can't create database file: %v", err)
 		}

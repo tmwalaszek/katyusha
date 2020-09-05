@@ -18,7 +18,7 @@ var showSummaryCmd = &cobra.Command{
 		// workaround for https://github.com/spf13/viper/issues/233
 		viper.BindPFlag("id", cmd.Flags().Lookup("id"))
 
-		inv, err := inventory.NewInventory(viper.GetString("db"))
+		inv, err := inventory.NewInventory("sqlite", viper.GetString("db"))
 		if err != nil {
 			log.Fatalf("Can't create database file: %v", err)
 		}

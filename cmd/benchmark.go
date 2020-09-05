@@ -29,7 +29,7 @@ var benchmarkCmd = &cobra.Command{
 		var err error
 
 		if viper.GetInt64("id") != 0 {
-			inv, err := inventory.NewInventory(viper.GetString("db"))
+			inv, err := inventory.NewInventory("sqlite", viper.GetString("db"))
 			if err != nil {
 				log.Fatalf("Can't create database file: %v", err)
 			}
@@ -83,9 +83,9 @@ var benchmarkCmd = &cobra.Command{
 			}
 		}()
 
-		var inv *inventory.Inventory
+		var inv inventory.Inventory
 		if viper.GetBool("save") {
-			inv, err = inventory.NewInventory(viper.GetString("db"))
+			inv, err = inventory.NewInventory("sqlite", viper.GetString("db"))
 			if err != nil {
 				log.Fatalf("Could not create inventory: %v", err)
 			}

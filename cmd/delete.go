@@ -14,7 +14,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete benchmark configurations with all data associated",
 	Run: func(cmd *cobra.Command, args []string) {
-		inv, err := inventory.NewInventory(viper.GetString("db"))
+		inv, err := inventory.NewInventory("sqlite", viper.GetString("db"))
 		if err != nil {
 			log.Fatalf("Can't initialize database: %v", err)
 		}
