@@ -64,8 +64,9 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// NetInventory creates and initiate new Inventory object with ready to use db handler
-// If file does not exists it will try to create schema
+// NewInventory creates and initiate new Inventory.
+// It requires one argument which is the path to the SQLite3 db file.
+// If file does not exists it will try to create one using pre defined schema
 func NewInventory(dbFile string) (*Inventory, error) {
 	var createSchema bool
 
@@ -91,6 +92,7 @@ func NewInventory(dbFile string) (*Inventory, error) {
 	}, nil
 }
 
+// queryParametersTable
 func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (parameters, error) {
 	query := "SELECT parameter FROM parameters where benchmark_configuration = ?"
 
@@ -99,7 +101,6 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (param
 		return nil, err
 	}
 
-	defer rows.Close()
 	results := NewParameter()
 
 	for rows.Next() {
@@ -107,18 +108,21 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (param
 		err = rows.Scan(&value)
 
 		if err != nil {
-			return nil, err
+			break
 		}
 
 		err = results.Set(value)
 		if err != nil {
-			return nil, err
+			break
 		}
 	}
 
-	rerr := rows.Close()
-	if rerr != nil {
-		return nil, err
+	if closeErr := rows.Close(); closeErr != nil {
+		return nil, fmt.Errorf("Close rows error: %w", closeErr)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("parameter scan error: %w", err)
 	}
 
 	if err := rows.Err(); err != nil {
