@@ -19,19 +19,19 @@ import (
 func TestHeader(t *testing.T) {
 	tt := []struct {
 		headers  []string
-		expected headers
+		expected Headers
 		match    bool
 	}{
 		{
 			headers: []string{"Location: http://www.google.pl/"},
-			expected: headers{
+			expected: Headers{
 				"Location": "http://www.google.pl/",
 			},
 			match: true,
 		},
 		{
 			headers: []string{"Location: http://www.google.pl/", "Content-Type: text/html; charset=UTF-8"},
-			expected: headers{
+			expected: Headers{
 				"Location":     "http://www.google.pl/",
 				"Content-Type": "text/html; charset=UTF-8",
 			},
@@ -39,7 +39,7 @@ func TestHeader(t *testing.T) {
 		},
 		{
 			headers: []string{"Location http://www"},
-			expected: headers{
+			expected: Headers{
 				"Location": "http://www",
 			},
 			match: false,
@@ -75,12 +75,12 @@ func TestHeader(t *testing.T) {
 func TestParameter(t *testing.T) {
 	tt := []struct {
 		parameters []string
-		expected   parameters
+		expected   Parameters
 		match      bool
 	}{
 		{
 			parameters: []string{"key1=val1&key2=val2"},
-			expected: parameters{
+			expected: Parameters{
 				{
 					"key1": "val1",
 					"key2": "val2",
@@ -90,7 +90,7 @@ func TestParameter(t *testing.T) {
 		},
 		{
 			parameters: []string{"key1=val1"},
-			expected: parameters{
+			expected: Parameters{
 				{
 					"key1": "val1",
 				},
@@ -99,7 +99,7 @@ func TestParameter(t *testing.T) {
 		},
 		{
 			parameters: []string{"key1=val1&key2=val2", "key3=val3&key4=val4"},
-			expected: parameters{
+			expected: Parameters{
 				{
 					"key1": "val1",
 					"key2": "val2",
@@ -113,7 +113,7 @@ func TestParameter(t *testing.T) {
 		},
 		{
 			parameters: []string{"key1"},
-			expected: parameters{
+			expected: Parameters{
 				{
 					"key1": "",
 				},

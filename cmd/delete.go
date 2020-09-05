@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"context"
+	"github.com/tmwalaszek/katyusha/katyusha/inventory"
 	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tmwalaszek/katyusha/katyusha"
 )
 
 // deleteCmd represents the delete command
@@ -14,7 +14,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete benchmark configurations with all data associated",
 	Run: func(cmd *cobra.Command, args []string) {
-		inv, err := katyusha.NewInventory(viper.GetString("db"))
+		inv, err := inventory.NewInventory(viper.GetString("db"))
 		if err != nil {
 			log.Fatalf("Can't initialize database: %v", err)
 		}

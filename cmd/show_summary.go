@@ -3,11 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/tmwalaszek/katyusha/katyusha/inventory"
 	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tmwalaszek/katyusha/katyusha"
 )
 
 // showSummaryCmd represents the showSummary command
@@ -18,7 +18,7 @@ var showSummaryCmd = &cobra.Command{
 		// workaround for https://github.com/spf13/viper/issues/233
 		viper.BindPFlag("id", cmd.Flags().Lookup("id"))
 
-		inv, err := katyusha.NewInventory(viper.GetString("db"))
+		inv, err := inventory.NewInventory(viper.GetString("db"))
 		if err != nil {
 			log.Fatalf("Can't create database file: %v", err)
 		}

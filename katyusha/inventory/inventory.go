@@ -1,10 +1,11 @@
 // Inventory supports only SQLite3
-package katyusha
+package inventory
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/tmwalaszek/katyusha/katyusha"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ type BenchmarkConfiguration struct {
 	ID          int64
 	Description string
 
-	BenchmarkParameters
+	katyusha.BenchmarkParameters
 }
 
 func (b BenchmarkConfiguration) String() string {
@@ -47,7 +48,7 @@ Body: 		%s
 type BenchmarkSummary struct {
 	ID int64
 
-	Summary
+	katyusha.Summary
 }
 
 type Inventory struct {
@@ -93,7 +94,7 @@ func NewInventory(dbFile string) (*Inventory, error) {
 }
 
 // queryParametersTable
-func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (parameters, error) {
+func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (katyusha.Parameters, error) {
 	query := "SELECT parameter FROM parameters where benchmark_configuration = ?"
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
@@ -101,7 +102,7 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (param
 		return nil, err
 	}
 
-	results := NewParameter()
+	results := katyusha.NewParameter()
 
 	for rows.Next() {
 		var value string
@@ -133,7 +134,7 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (param
 }
 
 // querykeyValueTable is used to read table parameters and headers
-func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (headers, error) {
+func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (katyusha.Headers, error) {
 	query := "SELECT header FROM headers WHERE benchmark_configuration = ?"
 
 	rows, err := i.db.QueryContext(ctx, query, bcId)
@@ -142,7 +143,7 @@ func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (headers,
 	}
 
 	defer rows.Close()
-	results := NewHeader()
+	results := katyusha.NewHeader()
 
 	for rows.Next() {
 		var header string
@@ -293,7 +294,7 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 
 		s := &BenchmarkSummary{
 			ID: id,
-			Summary: Summary{
+			Summary: katyusha.Summary{
 				Start:          timeStart,
 				End:            timeEnd,
 				TotalTime:      duration,
@@ -363,7 +364,7 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 		bc := &BenchmarkConfiguration{
 			ID:          id,
 			Description: description,
-			BenchmarkParameters: BenchmarkParameters{
+			BenchmarkParameters: katyusha.BenchmarkParameters{
 				URL:             url,
 				Method:          method,
 				ReqCount:        reqCount,
@@ -418,7 +419,7 @@ func (i *Inventory) DeleteBenchmark(ctx context.Context, bcID int64) error {
 }
 
 // InsertBenchmarkSummary creates summary for specific benchmark configuration
-func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary, bcId int64) error {
+func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *katyusha.Summary, bcId int64) error {
 	tx, err := i.db.Begin()
 	if err != nil {
 		return fmt.Errorf("Can't start transaction: %v", err)
@@ -472,7 +473,7 @@ func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary
 }
 
 // InsertBenchmarkConfiguration creates new benchmark configuration with unique url and description
-func (i *Inventory) InsertBenchmarkConfiguration(ctx context.Context, benchParameters *BenchmarkParameters, description string) (int64, error) {
+func (i *Inventory) InsertBenchmarkConfiguration(ctx context.Context, benchParameters *katyusha.BenchmarkParameters, description string) (int64, error) {
 	tx, err := i.db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("Can't start transaction: %v", err)

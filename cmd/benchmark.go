@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/tmwalaszek/katyusha/katyusha/inventory"
 	"log"
 	"os"
 	"os/signal"
@@ -24,11 +25,11 @@ var benchmarkCmd = &cobra.Command{
 		viper.BindPFlag("id", cmd.Flags().Lookup("id"))
 
 		var bcID int64
-		var bcs []*katyusha.BenchmarkConfiguration
+		var bcs []*inventory.BenchmarkConfiguration
 		var err error
 
 		if viper.GetInt64("id") != 0 {
-			inv, err := katyusha.NewInventory(viper.GetString("db"))
+			inv, err := inventory.NewInventory(viper.GetString("db"))
 			if err != nil {
 				log.Fatalf("Can't create database file: %v", err)
 			}
@@ -82,9 +83,9 @@ var benchmarkCmd = &cobra.Command{
 			}
 		}()
 
-		var inv *katyusha.Inventory
+		var inv *inventory.Inventory
 		if viper.GetBool("save") {
-			inv, err = katyusha.NewInventory(viper.GetString("db"))
+			inv, err = inventory.NewInventory(viper.GetString("db"))
 			if err != nil {
 				log.Fatalf("Could not create inventory: %v", err)
 			}

@@ -104,14 +104,14 @@ func (s Summary) String() string {
 		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
 }
 
-type headers map[string]string
+type Headers map[string]string
 
-func NewHeader() headers {
-	h := make(headers)
+func NewHeader() Headers {
+	h := make(Headers)
 	return h
 }
 
-func (h headers) Set(value string) error {
+func (h Headers) Set(value string) error {
 	r := regexp.MustCompile(headerRegexp)
 	matches := r.FindStringSubmatch(value)
 
@@ -123,15 +123,15 @@ func (h headers) Set(value string) error {
 	return nil
 }
 
-type parameters []map[string]string
+type Parameters []map[string]string
 
-func NewParameter() parameters {
-	p := make(parameters, 0)
+func NewParameter() Parameters {
+	p := make(Parameters, 0)
 	return p
 }
 
 // value needs to in format "key1=value2&key2=value2
-func (p *parameters) Set(value string) error {
+func (p *Parameters) Set(value string) error {
 	paramsMap := make(map[string]string)
 	parameters := strings.Split(value, "&")
 
@@ -169,8 +169,8 @@ type BenchmarkParameters struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 
-	Headers    headers
-	Parameters parameters
+	Headers    Headers
+	Parameters Parameters
 
 	Body []byte
 }

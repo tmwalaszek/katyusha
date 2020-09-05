@@ -1,7 +1,8 @@
-package katyusha
+package inventory
 
 import (
 	"context"
+	"github.com/tmwalaszek/katyusha/katyusha"
 	"os"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ func TestInventory(t *testing.T) {
 
 	defer os.Remove("pliczek.db")
 
-	b := &BenchmarkParameters{
+	b := &katyusha.BenchmarkParameters{
 		URL:             "http://katyusha.text",
 		ConcurrentConns: 1,
 		ReqCount:        1,
@@ -51,7 +52,7 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("Could not parse time: %v", err)
 	}
 
-	summary := &Summary{
+	summary := &katyusha.Summary{
 		Start:          start,
 		End:            end,
 		TotalTime:      time.Duration(30 * time.Second),
@@ -80,7 +81,7 @@ func TestInventory(t *testing.T) {
 		t.Fatalf("Coould not receive benchmark summary; %v", err)
 	}
 
-	var r ReqTimes
+	var r katyusha.ReqTimes
 	if diff := cmp.Diff(*summary, sm[0].Summary, cmpopts.IgnoreTypes(r)); diff != "" {
 		t.Errorf("Benchmark summary mismatch (-want +got):\n%s", diff)
 	}
