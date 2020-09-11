@@ -14,13 +14,12 @@ type DB struct {
 	db *sql.DB
 }
 
-func (d *DB) deleteBenchmark(ctx context.Context, bcID int64) error {
+func (d *DB) deleteBenchmark(ctx context.Context, bcID int64, query string) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return fmt.Errorf("Can't start transaction: %v", err)
 	}
 
-	query := "DELETE FROM benchmark_configuration WHERE id = ?"
 	_, err = tx.ExecContext(ctx, query, bcID)
 	if err != nil {
 		tx.Rollback()

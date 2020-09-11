@@ -8,6 +8,7 @@ import (
 	"github.com/tmwalaszek/katyusha/katyusha"
 	"os"
 )
+
 var SQLiteSchema = `CREATE TABLE benchmark_configuration (
     id INTEGER PRIMARY KEY,
     description TEXT,
@@ -172,7 +173,8 @@ func (s *SQLite) FindSummaryForBenchmark(ctx context.Context, bcID int64) ([]*Be
 
 // DeleteBenchmark deletes benchmark configuration and all associated summaries
 func (s *SQLite) DeleteBenchmark(ctx context.Context, bcID int64) error {
-	err := s.deleteBenchmark(ctx, bcID)
+	query := "DELETE FROM benchmark_configuration WHERE id = ?"
+	err := s.deleteBenchmark(ctx, bcID, query)
 
 	return err
 }
