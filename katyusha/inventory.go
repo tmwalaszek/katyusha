@@ -91,10 +91,19 @@ func NewInventory(dbFile string) (*Inventory, error) {
 	}, nil
 }
 
-func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (parameters, error) {
+func closeRows(rows *sql.Rows) error {
+	err := rows.Close()
+	if err != nil {
+		return err
+	}
+
+	return rows.Err()
+}
+
+func (i *Inventory) queryParametersTable(ctx context.Context, bcID int64) (parameters, error) {
 	query := "SELECT parameter FROM parameters where benchmark_configuration = ?"
 
-	rows, err := i.db.QueryContext(ctx, query, bcId)
+	rows, err := i.db.QueryContext(ctx, query, bcID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,23 +125,15 @@ func (i *Inventory) queryParametersTable(ctx context.Context, bcId int64) (param
 		}
 	}
 
-	rerr := rows.Close()
-	if rerr != nil {
-		return nil, err
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return results, nil
+	err = closeRows(rows)
+	return results, err
 }
 
 // querykeyValueTable is used to read table parameters and headers
-func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (headers, error) {
+func (i *Inventory) queryHeadersTable(ctx context.Context, bcID int64) (headers, error) {
 	query := "SELECT header FROM headers WHERE benchmark_configuration = ?"
 
-	rows, err := i.db.QueryContext(ctx, query, bcId)
+	rows, err := i.db.QueryContext(ctx, query, bcID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,16 +154,8 @@ func (i *Inventory) queryHeadersTable(ctx context.Context, bcId int64) (headers,
 		}
 	}
 
-	rerr := rows.Close()
-	if rerr != nil {
-		return nil, err
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return results, nil
+	err = closeRows(rows)
+	return results, err
 }
 
 // Find and return all benchmarks configurations
@@ -228,16 +221,8 @@ func (i *Inventory) queryErrors(ctx context.Context, smId int64) (map[string]int
 		errorsMap[name] = count
 	}
 
-	rerr := rows.Close()
-	if rerr != nil {
-		return nil, err
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return errorsMap, nil
+	err = closeRows(rows)
+	return errorsMap, err
 }
 
 // FindSummaryForBenchmark return summaries for benchmark
@@ -383,15 +368,7 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 		results = append(results, bc)
 	}
 
-	rerr := rows.Close()
-	if rerr != nil {
-		return nil, err
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
+	err = closeRows(rows)
 	return results, nil
 }
 
