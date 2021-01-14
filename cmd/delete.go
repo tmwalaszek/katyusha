@@ -14,6 +14,8 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete benchmark configurations with all data associated",
 	Run: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("id", cmd.Flags().Lookup("id"))
+
 		inv, err := katyusha.NewInventory(viper.GetString("db"))
 		if err != nil {
 			log.Fatalf("Can't initialize database: %v", err)
@@ -29,9 +31,9 @@ var deleteCmd = &cobra.Command{
 }
 
 func init() {
-	deleteCmd.Flags().Int64P("benchmark", "b", 0, "Benchmark configuration ID")
+	deleteCmd.Flags().Int64P("id", "i", 0, "Benchmark configuration ID")
 
-	deleteCmd.MarkFlagRequired("benchmark")
+	deleteCmd.MarkFlagRequired("id")
 
 	viper.BindPFlags(deleteCmd.Flags())
 	inventoryCmd.AddCommand(deleteCmd)
