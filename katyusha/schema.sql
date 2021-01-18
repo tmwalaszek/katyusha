@@ -39,6 +39,8 @@ CREATE TABLE parameters (
 
 CREATE TABLE benchmark_summary (
     id INTEGER PRIMARY KEY,
+    description TEXT,
+    target_version TEXT,
     start TEXT,
     end TEXT,
     duration TEXT,
