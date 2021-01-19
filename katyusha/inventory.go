@@ -14,8 +14,8 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-var summaryFields = "start,end,duration,requests_count,success_req,fail_req,data_transfered,req_per_sec,avg_req_time,min_req_time,max_req_time,p50_req_time,p75_req_time,p90_req_time,p99_req_time"
-var benchmarkFields = "description,url,method,requests_count,concurrent_conns,skip_verify,abort_after,ca,cert,key,duration,keep_alive,request_delay,read_timeout,write_timeout,body"
+var summaryFields = "target_version,start,end,duration,requests_count,success_req,fail_req,data_transfered,req_per_sec,avg_req_time,min_req_time,max_req_time,p50_req_time,p75_req_time,p90_req_time,p99_req_time"
+var benchmarkFields = "target_endpoint,description,url,method,requests_count,concurrent_conns,skip_verify,abort_after,ca,cert,key,duration,keep_alive,request_delay,read_timeout,write_timeout,body"
 
 type BenchmarkConfiguration struct {
 	ID          int64
@@ -295,12 +295,12 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 	for rows.Next() {
 		var id int64
 		var reqCount, successReq, failReq, dataTransfered int
-		var start, end string
+		var version, start, end string
 		var duration, avgReq, minReq, maxReq time.Duration
 		var p50Req, p75Req, p90Req, p99Req time.Duration
 		var reqPerSec float64
 
-		err = rows.Scan(&id, &start, &end, &duration, &reqCount, &successReq, &failReq, &dataTransfered,
+		err = rows.Scan(&id, &version, &start, &end, &duration, &reqCount, &successReq, &failReq, &dataTransfered,
 			&reqPerSec, &avgReq, &minReq, &maxReq, &p50Req, &p75Req, &p90Req, &p99Req)
 		if err != nil {
 			return nil, err
@@ -319,6 +319,7 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 		s := &BenchmarkSummary{
 			ID: id,
 			Summary: Summary{
+				TargetVersion:  version,
 				Start:          timeStart,
 				End:            timeEnd,
 				TotalTime:      duration,
@@ -363,12 +364,12 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 	for rows.Next() {
 		var id int64
 		var reqCount, abortAfter, concurrentConns int
-		var description, url, method, ca, cert, key string
+		var endPoint, description, url, method, ca, cert, key string
 		var duration, keepAlive, requestDelay, readTimeout, writeTimeout time.Duration
 		var skipVerify bool
 		var body []byte
 
-		err = rows.Scan(&id, &description, &url, &method, &reqCount, &concurrentConns,
+		err = rows.Scan(&id, &endPoint, &description, &url, &method, &reqCount, &concurrentConns,
 			&skipVerify, &abortAfter, &ca, &cert, &key, &duration, &keepAlive, &requestDelay,
 			&readTimeout, &writeTimeout, &body)
 		if err != nil {
@@ -389,6 +390,7 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 			ID:          id,
 			Description: description,
 			BenchmarkParameters: BenchmarkParameters{
+				TargetEndpoint:  endPoint,
 				URL:             url,
 				Method:          method,
 				ReqCount:        reqCount,
@@ -441,8 +443,9 @@ func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary
 		return fmt.Errorf("Can't start transaction: %v", err)
 	}
 
-	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
+	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
 	res, err := tx.ExecContext(ctx, query,
+		summary.TargetVersion,
 		summary.Start.Format(time.RFC3339),
 		summary.End.Format(time.RFC3339),
 		summary.TotalTime,
@@ -495,9 +498,10 @@ func (i *Inventory) InsertBenchmarkConfiguration(ctx context.Context, benchParam
 		return 0, fmt.Errorf("Can't start transaction: %v", err)
 	}
 
-	query := fmt.Sprintf("INSERT INTO benchmark_configuration(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", benchmarkFields)
+	query := fmt.Sprintf("INSERT INTO benchmark_configuration(%s) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", benchmarkFields)
 
 	res, err := tx.ExecContext(ctx, query,
+		benchParameters.TargetEndpoint,
 		description,
 		benchParameters.URL,
 		benchParameters.Method,

@@ -1,5 +1,6 @@
 CREATE TABLE benchmark_configuration (
     id INTEGER PRIMARY KEY,
+    target_endpoint TEXT,
     description TEXT,
     url TEXT,
     method TEXT,
@@ -39,7 +40,6 @@ CREATE TABLE parameters (
 
 CREATE TABLE benchmark_summary (
     id INTEGER PRIMARY KEY,
-    description TEXT,
     target_version TEXT,
     start TEXT,
     end TEXT,

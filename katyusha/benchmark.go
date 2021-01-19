@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -54,10 +55,9 @@ func percentile(a ReqTimes, q float64) time.Duration {
 type Summary struct {
 	URL string
 
-    Description string
-    TargetVersion string
+	TargetVersion string
 
-    Start     time.Time
+	Start     time.Time
 	End       time.Time
 	TotalTime time.Duration
 
@@ -87,8 +87,7 @@ type Summary struct {
 func (s Summary) String() string {
 	return fmt.Sprintf(`Benchmark summary:
   URL:					%s
-  Description:          %s
-  Target Version        %s
+  Target Version:        		%s
   Start:				%v
   End:					%v
   Test Duration:			%v
@@ -105,7 +104,7 @@ func (s Summary) String() string {
   P90 Request time:			%v
   P99 Request time:			%v
   Errors:				%v
-	`, s.URL, s.Description, s.TargetVersion, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
+	`, s.URL, s.TargetVersion, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
 		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
 }
 
@@ -157,6 +156,9 @@ func (p *parameters) Set(value string) error {
 type BenchmarkParameters struct {
 	URL    string
 	Method string
+
+	Description    string
+	TargetEndpoint string
 
 	ReqCount        int
 	AbortAfter      int
@@ -270,6 +272,11 @@ func (b *Benchmark) StartBenchmark(ctx context.Context) *Summary {
 
 	errors := make(map[string]int)
 
+	endPointVersion, err := b.receiveTargetVersion()
+	if err != nil {
+		endPointVersion = fmt.Sprintf("Error receving endpoint version: %v", err)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -347,6 +354,7 @@ MAIN:
 
 	summary := &Summary{
 		URL:            b.URL,
+		TargetVersion:  endPointVersion,
 		Start:          start,
 		End:            end,
 		TotalTime:      totalTime,
@@ -413,6 +421,38 @@ func NewBenchmark(reqParams *BenchmarkParameters) (*Benchmark, error) {
 	}
 
 	return b, nil
+}
+
+func (b *Benchmark) receiveTargetVersion() (string, error) {
+	var endpointVersion string
+
+	if b.TargetEndpoint != "" {
+		req := fasthttp.AcquireRequest()
+		resp := fasthttp.AcquireResponse()
+
+		defer fasthttp.ReleaseRequest(req)
+		defer fasthttp.ReleaseResponse(resp)
+
+		u, err := url.Parse(b.URL)
+		if err != nil {
+			return "", err
+		}
+
+		versionEndpoint, err := u.Parse(b.TargetEndpoint)
+		if err != nil {
+			return "", err
+		}
+
+		req.SetRequestURI(versionEndpoint.String())
+		err = b.client.Do(req, resp)
+		if err != nil {
+			return "", err
+		}
+
+		endpointVersion = string(resp.Body())
+	}
+
+	return strings.TrimSpace(endpointVersion), nil
 }
 
 // doRequest perform the HTTP request based on the paramters in BenchmarkParameters

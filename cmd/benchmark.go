@@ -142,6 +142,7 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 
 	return &katyusha.BenchmarkParameters{
 		URL:             host,
+		TargetEndpoint:  viper.GetString("version_endpoint"),
 		Method:          viper.GetString("method"),
 		ReqCount:        viper.GetInt("requests"),
 		AbortAfter:      viper.GetInt("abort"),
@@ -168,6 +169,7 @@ func init() {
 	benchmarkCmd.Flags().StringP("ca", "c", "", "CA path")
 	benchmarkCmd.Flags().StringP("cert", "F", "", "Cert path")
 	benchmarkCmd.Flags().StringP("key", "K", "", "Key path")
+	benchmarkCmd.Flags().StringP("version_endpoint", "E", "", "Version endpoint, the results from this endpoint will be saved in test summary")
 	benchmarkCmd.Flags().BoolP("save", "S", false, "Save benchamrk configuration and result")
 	benchmarkCmd.Flags().BoolP("insecure", "i", false, "TLS Skip verify")
 	benchmarkCmd.Flags().BoolP("norun", "N", false, "Do not start benchmark")
