@@ -17,6 +17,7 @@ var showCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// workaround for https://github.com/spf13/viper/issues/233
 		viper.BindPFlag("id", cmd.Flags().Lookup("id"))
+		idChanged := cmd.Flags().Lookup("id").Changed
 
 		var bcs []*katyusha.BenchmarkConfiguration
 		var err error
@@ -36,7 +37,7 @@ var showCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("Can't get benchmark from the database: %v", err)
 			}
-		} else if viper.GetBool("all") {
+		} else if viper.GetBool("all") && !idChanged {
 			bcs, err = inv.FindAllBenchmarks(context.Background())
 			if err != nil {
 				log.Fatalf("Can't get benchamrks from the database: %v", err)
