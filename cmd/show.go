@@ -47,11 +47,7 @@ var showCmd = &cobra.Command{
 
 		for i, bc := range bcs {
 			fmt.Printf("Benchmark [%d]\n", i+1)
-			if viper.GetBool("full") {
-				fmt.Println(bc)
-			} else {
-				fmt.Printf("ID:\t\t %d\nDescription:\t %s\nUrl:\t\t %s\n", bc.ID, bc.Description, bc.URL)
-			}
+			fmt.Println(bc)
 			fmt.Printf("\n")
 		}
 	},

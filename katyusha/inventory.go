@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -24,28 +25,65 @@ type BenchmarkConfiguration struct {
 }
 
 func (b BenchmarkConfiguration) String() string {
-	return fmt.Sprintf(`Benchmark configuration:
-ID:				%d
-Description: 			%s
-URL:				%s
-Method:				%s
-Request count:			%d
-Abort:				%d
-Concurrent connections:		%d
-SkipVerify:			%t
-CA:				%s
-Cert:			%s
-Key:			%s
-Duration:			%v
-Keep Alive: 			%v
-Request Delay:			%v
-Read Timeout:			%v
-Write Timeout:			%v
-Headers: 			%v
-Query args: 			%v
-Body: 		%s
-`, b.ID, b.Description, b.URL, b.Method, b.ReqCount, b.AbortAfter, b.ConcurrentConns, b.SkipVerify, b.CA, b.Cert, b.Key, b.Duration,
-		b.KeepAlive, b.RequestDelay, b.ReadTimeout, b.WriteTimeout, b.Headers, b.Parameters, string(b.Body))
+	var sb strings.Builder
+	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', tabwriter.TabIndent)
+
+	fmt.Fprintf(w, "ID:\t%d\n", b.ID)
+	fmt.Fprintf(w, "Description:\t%s\n", b.Description)
+	fmt.Fprintf(w, "URL:\t%s\n", b.URL)
+	fmt.Fprintf(w, "Method:\t%s\n", b.Method)
+	fmt.Fprintf(w, "Request count:\t%d\n", b.ReqCount)
+
+	if b.AbortAfter != 0 {
+		fmt.Fprintf(w, "Abort:\t%d\n", b.AbortAfter)
+	}
+
+	fmt.Fprintf(w, "Concurrent connections:\t%d\n", b.ConcurrentConns)
+
+	if b.CA != "" || (b.Cert != "" && b.Key != "") {
+		fmt.Fprintf(w, "SkipVerify:\t%t\n", b.SkipVerify)
+
+		if b.CA != "" {
+			fmt.Fprintf(w, "CA:\t%s\n", b.CA)
+		}
+
+		if b.Cert != "" && b.Key != "" {
+			fmt.Fprintf(w, "Cert:\t%s\n", b.Cert)
+			fmt.Fprintf(w, "Key:\t%s\n", b.Key)
+		}
+	}
+
+	fmt.Fprintf(w, "Duration:\t%v\n", b.Duration)
+	if b.KeepAlive != 0 {
+		fmt.Fprintf(w, "Keep Alive:\t%v\n", b.KeepAlive)
+	}
+
+	if b.RequestDelay != 0 {
+		fmt.Fprintf(w, "Request Delay:\t%v\n", b.RequestDelay)
+	}
+
+	if b.ReadTimeout != 0 {
+		fmt.Fprintf(w, "Read Timeout:\t%v\n", b.ReadTimeout)
+	}
+
+	if b.WriteTimeout != 0 {
+		fmt.Fprintf(w, "Write Timeout:\t%v\n", b.WriteTimeout)
+	}
+
+	if len(b.Headers) != 0 {
+		fmt.Fprintf(w, "Headers:\t%v\n", b.Headers)
+	}
+
+	if len(b.Parameters) != 0 {
+		fmt.Fprintf(w, "Parameters:\t%v\n", b.Parameters)
+	}
+
+	if len(b.Body) != 0 {
+		fmt.Fprintf(w, "Body:\t%s\n", string(b.Body))
+	}
+
+	w.Flush()
+	return sb.String()
 }
 
 type BenchmarkSummary struct {

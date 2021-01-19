@@ -54,7 +54,10 @@ func percentile(a ReqTimes, q float64) time.Duration {
 type Summary struct {
 	URL string
 
-	Start     time.Time
+    Description string
+    TargetVersion string
+
+    Start     time.Time
 	End       time.Time
 	TotalTime time.Duration
 
@@ -84,6 +87,8 @@ type Summary struct {
 func (s Summary) String() string {
 	return fmt.Sprintf(`Benchmark summary:
   URL:					%s
+  Description:          %s
+  Target Version        %s
   Start:				%v
   End:					%v
   Test Duration:			%v
@@ -100,7 +105,7 @@ func (s Summary) String() string {
   P90 Request time:			%v
   P99 Request time:			%v
   Errors:				%v
-	`, s.URL, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
+	`, s.URL, s.Description, s.TargetVersion, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
 		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
 }
 
