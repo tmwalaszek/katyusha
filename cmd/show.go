@@ -49,6 +49,20 @@ var showCmd = &cobra.Command{
 			fmt.Printf("Benchmark [%d]\n", i+1)
 			fmt.Println(bc)
 			fmt.Printf("\n")
+
+			if viper.GetBool("full") {
+				summaries, err := inv.FindSummaryForBenchmark(context.Background(), bc.ID)
+				if err != nil {
+					log.Fatalf("Can't get benchmark summary: %v", err)
+				}
+
+				fmt.Println("Summaries: ")
+				for idx, summary := range summaries {
+					fmt.Printf("[%d] ", idx+1)
+					fmt.Println(summary)
+					fmt.Printf("\n")
+				}
+			}
 		}
 	},
 }
