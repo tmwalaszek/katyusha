@@ -28,10 +28,12 @@ var showCmd = &cobra.Command{
 		}
 
 		if id := viper.GetInt64("id"); id != 0 {
-			bcs, err = inv.FindBenchmarkByID(context.Background(), id)
+			bc, err := inv.FindBenchmarkByID(context.Background(), id)
 			if err != nil {
 				log.Fatalf("Can't get benchamrks from the database: %v", err)
 			}
+
+			bcs = append(bcs, bc)
 		} else if url := viper.GetString("url"); url != "" {
 			bcs, err = inv.FindBenchmarkByURL(context.Background(), url)
 			if err != nil {

@@ -14,7 +14,7 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-var summaryFields = "target_version,start,end,duration,requests_count,success_req,fail_req,data_transfered,req_per_sec,avg_req_time,min_req_time,max_req_time,p50_req_time,p75_req_time,p90_req_time,p99_req_time"
+var summaryFields = "description,target_version,start,end,duration,requests_count,success_req,fail_req,data_transfered,req_per_sec,avg_req_time,min_req_time,max_req_time,p50_req_time,p75_req_time,p90_req_time,p99_req_time"
 var benchmarkFields = "target_endpoint,description,url,method,requests_count,concurrent_conns,skip_verify,abort_after,ca,cert,key,duration,keep_alive,request_delay,read_timeout,write_timeout,body"
 
 type BenchmarkConfiguration struct {
@@ -87,9 +87,22 @@ func (b BenchmarkConfiguration) String() string {
 }
 
 type BenchmarkSummary struct {
-	ID int64
+	ID          int64
+	Description string
 
 	Summary
+}
+
+func (b BenchmarkSummary) String() string {
+	var sb strings.Builder
+	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', tabwriter.TabIndent)
+
+	fmt.Fprintf(w, "ID:\t%d\n", b.ID)
+	fmt.Fprintf(w, "Description:\t%s\n", b.Description)
+
+	w.Flush()
+
+	return fmt.Sprintf("%s%s\n", sb.String(), b.Summary)
 }
 
 type Inventory struct {
@@ -211,11 +224,18 @@ func (i *Inventory) FindAllBenchmarks(ctx context.Context) ([]*BenchmarkConfigur
 }
 
 // Find and return Bencharm configuration using ID
-func (i *Inventory) FindBenchmarkByID(ctx context.Context, ID int64) ([]*BenchmarkConfiguration, error) {
+func (i *Inventory) FindBenchmarkByID(ctx context.Context, ID int64) (*BenchmarkConfiguration, error) {
 	query := fmt.Sprintf("SELECT id,%s FROM benchmark_configuration where id = ?", benchmarkFields)
 	bcs, err := i.queryBenchmark(ctx, query, ID)
+	if err != nil {
+		return nil, err
+	}
 
-	return bcs, err
+	if len(bcs) != 1 {
+		return nil, nil
+	}
+
+	return bcs[0], nil
 }
 
 // FindBenchmark by two unique fields url and description
@@ -295,12 +315,12 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 	for rows.Next() {
 		var id int64
 		var reqCount, successReq, failReq, dataTransfered int
-		var version, start, end string
+		var description, version, start, end string
 		var duration, avgReq, minReq, maxReq time.Duration
 		var p50Req, p75Req, p90Req, p99Req time.Duration
 		var reqPerSec float64
 
-		err = rows.Scan(&id, &version, &start, &end, &duration, &reqCount, &successReq, &failReq, &dataTransfered,
+		err = rows.Scan(&id, &description, &version, &start, &end, &duration, &reqCount, &successReq, &failReq, &dataTransfered,
 			&reqPerSec, &avgReq, &minReq, &maxReq, &p50Req, &p75Req, &p90Req, &p99Req)
 		if err != nil {
 			return nil, err
@@ -317,7 +337,8 @@ func (i *Inventory) querySummary(ctx context.Context, query string, args ...inte
 		}
 
 		s := &BenchmarkSummary{
-			ID: id,
+			ID:          id,
+			Description: description,
 			Summary: Summary{
 				TargetVersion:  version,
 				Start:          timeStart,
@@ -437,14 +458,15 @@ func (i *Inventory) DeleteBenchmark(ctx context.Context, bcID int64) error {
 }
 
 // InsertBenchmarkSummary creates summary for specific benchmark configuration
-func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary, bcId int64) error {
+func (i *Inventory) InsertBenchmarkSummary(ctx context.Context, summary *Summary, description string, bcId int64) error {
 	tx, err := i.db.Begin()
 	if err != nil {
 		return fmt.Errorf("Can't start transaction: %v", err)
 	}
 
-	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
+	query := fmt.Sprintf("INSERT INTO benchmark_summary(%s,benchmark_configuration) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", summaryFields)
 	res, err := tx.ExecContext(ctx, query,
+		description,
 		summary.TargetVersion,
 		summary.Start.Format(time.RFC3339),
 		summary.End.Format(time.RFC3339),

@@ -70,7 +70,7 @@ func TestInventory(t *testing.T) {
 		Errors:         make(map[string]int),
 	}
 
-	err = inv.InsertBenchmarkSummary(context.Background(), summary, bcID)
+	err = inv.InsertBenchmarkSummary(context.Background(), summary, "", bcID)
 	if err != nil {
 		t.Errorf("Error inserting benchmark summary: %v", err)
 	}

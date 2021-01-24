@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -85,27 +86,30 @@ type Summary struct {
 }
 
 func (s Summary) String() string {
-	return fmt.Sprintf(`Benchmark summary:
-  URL:					%s
-  Target Version:        		%s
-  Start:				%v
-  End:					%v
-  Test Duration:			%v
-  Total Requests:			%d
-  Requests per Second:			%.2f
-  Successful requests:			%d
-  Failed requests:			%d
-  Data transfered:			%s
-  Average Request time:			%v
-  Min Request time:			%v
-  Max Request time:			%v
-  P50 Request time:			%v
-  P75 Request time:			%v
-  P90 Request time:			%v
-  P99 Request time:			%v
-  Errors:				%v
-	`, s.URL, s.TargetVersion, s.Start, s.End, s.TotalTime, s.ReqCount, s.ReqPerSec, s.SuccessReq, s.FailReq, bytefmt.ByteSize(uint64(s.DataTransfered)),
-		s.AvgReqTime, s.MinReqTime, s.MaxReqTime, s.P50ReqTime, s.P75ReqTime, s.P90ReqTime, s.P99ReqTime, s.Errors)
+	var sb strings.Builder
+	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', tabwriter.TabIndent)
+
+	fmt.Fprintf(w, "URL:\t%s\n", s.URL)
+	fmt.Fprintf(w, "Target Version:\t%s\n", s.TargetVersion)
+	fmt.Fprintf(w, "Start:\t%v\n", s.Start)
+	fmt.Fprintf(w, "End:\t%v\n", s.End)
+	fmt.Fprintf(w, "Test Duration:\t%v\n", s.TotalTime)
+	fmt.Fprintf(w, "Total Requests:\t%d\n", s.ReqCount)
+	fmt.Fprintf(w, "Requests per Second:\t%.2f\n", s.ReqPerSec)
+	fmt.Fprintf(w, "Successful requests:\t%d\n", s.SuccessReq)
+	fmt.Fprintf(w, "Failed requests:\t%d\n", s.FailReq)
+	fmt.Fprintf(w, "Data transfered:\t%s\n", bytefmt.ByteSize(uint64(s.DataTransfered)))
+	fmt.Fprintf(w, "Average Request time:\t%v\n", s.AvgReqTime)
+	fmt.Fprintf(w, "Min Request time:\t%v\n", s.MinReqTime)
+	fmt.Fprintf(w, "Max Request time:\t%v\n", s.MaxReqTime)
+	fmt.Fprintf(w, "P50 Request time:\t%v\n", s.P50ReqTime)
+	fmt.Fprintf(w, "P75 Request time:\t%v\n", s.P75ReqTime)
+	fmt.Fprintf(w, "P90 Request time:\t%v\n", s.P90ReqTime)
+	fmt.Fprintf(w, "P99 Request time:\t%v\n", s.P99ReqTime)
+	fmt.Fprintf(w, "Errors:\t%v\n", s.Errors)
+
+	w.Flush()
+	return sb.String()
 }
 
 type headers map[string]string
