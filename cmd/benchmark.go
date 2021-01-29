@@ -20,6 +20,7 @@ var benchmarkCmd = &cobra.Command{
 	Use:   "benchmark",
 	Short: "Run HTTP benchmark",
 	Run: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("save", cmd.Flags().Lookup("save"))
 		var err error
 
 		if viper.GetString("benchmark_config") != "" {
