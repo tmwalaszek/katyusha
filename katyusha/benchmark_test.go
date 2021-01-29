@@ -3,11 +3,12 @@ package katyusha
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"io/ioutil"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 
 	"net/http"
 	"net/http/httptest"

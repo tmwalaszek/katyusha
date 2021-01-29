@@ -11,5 +11,4 @@ require (
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.6.2
 	github.com/valyala/fasthttp v1.9.0
-	golang.org/dl v0.0.0-20210120004500-be2bfd84e4cf // indirect
 )
