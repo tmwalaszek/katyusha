@@ -13,8 +13,6 @@ import (
 	"github.com/tmwalaszek/katyusha/katyusha"
 )
 
-var benchmarkConf string
-
 // benchmarkCmd represents the benchmark command
 var benchmarkCmd = &cobra.Command{
 	Use:   "benchmark",
@@ -54,14 +52,9 @@ func runBenchmark(benchmarkParams *katyusha.BenchmarkParameters) {
 	signal.Notify(c, os.Interrupt)
 
 	go func() {
-		for {
-			select {
-			case <-c:
-				log.Print("Received signal and will stop benchmark")
-				cancel()
-				return
-			}
-		}
+		<-c
+		log.Print("Received signal and will stop benchmark")
+		cancel()
 	}()
 
 	var inv *katyusha.Inventory
@@ -99,7 +92,7 @@ func runBenchmark(benchmarkParams *katyusha.BenchmarkParameters) {
 func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 	host := viper.GetString("host")
 	if host == "" {
-		return nil, fmt.Errorf("Host not provided")
+		return nil, fmt.Errorf("host not provided")
 	}
 
 	headers := katyusha.NewHeader()

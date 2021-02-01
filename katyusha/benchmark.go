@@ -81,8 +81,6 @@ type Summary struct {
 	StdDeviation float64 // Standard deviation
 
 	Errors map[string]int // Errors map. Key is the HTTP response code.
-
-	requestsTimes ReqTimes
 }
 
 func (s Summary) String() string {

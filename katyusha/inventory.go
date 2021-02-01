@@ -441,7 +441,7 @@ func (i *Inventory) queryBenchmark(ctx context.Context, query string, args ...in
 	}
 
 	err = closeRows(rows)
-	return results, nil
+	return results, err
 }
 
 // DeleteBenchmark deletes benchmark configuration and all associated summaries
