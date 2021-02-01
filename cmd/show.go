@@ -61,7 +61,7 @@ var showCmd = &cobra.Command{
 
 				fmt.Println("Summaries: ")
 				for idx, summary := range summaries {
-					fmt.Printf("[%d] ", idx+1)
+					fmt.Printf("[%d] \n", idx+1)
 					fmt.Println(summary)
 					fmt.Printf("\n")
 				}

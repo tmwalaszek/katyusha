@@ -32,7 +32,9 @@ func (b BenchmarkConfiguration) String() string {
 	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', tabwriter.TabIndent)
 
 	fmt.Fprintf(w, "ID:\t%d\n", b.ID)
-	fmt.Fprintf(w, "Description:\t%s\n", b.Description)
+	if b.Description != "" {
+		fmt.Fprintf(w, "Description:\t%s\n", b.Description)
+	}
 	fmt.Fprintf(w, "URL:\t%s\n", b.URL)
 	fmt.Fprintf(w, "Method:\t%s\n", b.Method)
 	fmt.Fprintf(w, "Request count:\t%d\n", b.ReqCount)
@@ -101,11 +103,15 @@ func (b BenchmarkSummary) String() string {
 	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', tabwriter.TabIndent)
 
 	fmt.Fprintf(w, "ID:\t%d\n", b.ID)
-	fmt.Fprintf(w, "Description:\t%s\n", b.Description)
+	if b.Description != "" {
+		fmt.Fprintf(w, "Description:\t%s\n", b.Description)
+	}
+
+	fmt.Fprintf(w, "\n%s", b.Summary.String())
 
 	w.Flush()
 
-	return fmt.Sprintf("%s%s\n", sb.String(), b.Summary)
+	return sb.String()
 }
 
 type Inventory struct {

@@ -87,8 +87,9 @@ func (s Summary) String() string {
 	var sb strings.Builder
 	w := tabwriter.NewWriter(&sb, 0, 0, 1, ' ', tabwriter.TabIndent)
 
-	fmt.Fprintf(w, "URL:\t%s\n", s.URL)
-	fmt.Fprintf(w, "Target Version:\t%s\n", s.TargetVersion)
+	if s.TargetVersion != "" {
+		fmt.Fprintf(w, "Target Version:\t%s\n", s.TargetVersion)
+	}
 	fmt.Fprintf(w, "Start:\t%v\n", s.Start)
 	fmt.Fprintf(w, "End:\t%v\n", s.End)
 	fmt.Fprintf(w, "Test Duration:\t%v\n", s.TotalTime)
@@ -207,7 +208,7 @@ func (b *Benchmark) manageWorkers(ctx context.Context) (chan *RequestStat, chan 
 			doneChannels[i] = b.worker(req, statChan)
 		}
 
-		if b.Duration != time.Duration(0) {
+		if b.Duration != 0 {
 			breakAfter := time.After(b.Duration)
 		MAIN1:
 			for {
@@ -253,7 +254,7 @@ func (b *Benchmark) worker(req chan struct{}, statChan chan *RequestStat) chan s
 			case <-req:
 				stat := b.doRequest()
 				statChan <- stat
-				if b.RequestDelay != time.Duration(0) {
+				if b.RequestDelay != 0 {
 					time.Sleep(b.RequestDelay)
 				}
 			}
