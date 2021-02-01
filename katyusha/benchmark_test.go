@@ -2,6 +2,7 @@ package katyusha
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -301,6 +302,49 @@ func TestBodyRequest(t *testing.T) {
 	}
 
 	benchmark.StartBenchmark(context.Background())
+}
+
+func TestTargetEndpoint(t *testing.T) {
+	versionEndpoint := "{\"version\":\"0.1\"}"
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		response := struct {
+			Version string `json:"version"`
+		}{
+			Version: "0.1",
+		}
+
+		if r.URL.Path == "/version" {
+			data, err := json.Marshal(response)
+			if err != nil {
+				t.Errorf("Could not marshal version endpoint response: %v", err)
+			}
+
+			w.Write(data)
+		}
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(handler))
+	defer server.Close()
+
+	req := &BenchmarkParameters{
+		URL:            server.URL,
+		TargetEndpoint: "version",
+	}
+
+	benchmark, err := NewBenchmark(req)
+	if err != nil {
+		t.Errorf("Can't create benchmark: %v", err)
+	}
+
+	res, err := benchmark.receiveTargetVersion()
+	if err != nil {
+		t.Errorf("Can't fetch version endpoint info: %v", err)
+	}
+
+	if res != versionEndpoint {
+		t.Errorf("Version endpoint mismatch should be %s but is %s", versionEndpoint, res)
+	}
 }
 
 func TestMultipleRequests(t *testing.T) {

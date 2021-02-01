@@ -14,6 +14,9 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
+//go:embed schema.sql
+var schema string
+
 var summaryFields = "description,target_version,start,end,duration,requests_count,success_req,fail_req,data_transfered,req_per_sec,avg_req_time,min_req_time,max_req_time,p50_req_time,p75_req_time,p90_req_time,p99_req_time"
 var benchmarkFields = "target_endpoint,description,url,method,requests_count,concurrent_conns,skip_verify,abort_after,ca,cert,key,duration,keep_alive,request_delay,read_timeout,write_timeout,body"
 
@@ -122,8 +125,6 @@ func boolToInt(b bool) int {
 // NetInventory creates and initiate new Inventory object with ready to use db handler
 // If file does not exists it will try to create schema
 func NewInventory(dbFile string) (*Inventory, error) {
-	//go:embed schema.sql
-	var schema string
 	var createSchema bool
 
 	_, err := os.Stat(dbFile)
@@ -146,6 +147,10 @@ func NewInventory(dbFile string) (*Inventory, error) {
 	return &Inventory{
 		db: db,
 	}, nil
+}
+
+func (i *Inventory) Close() error {
+	return i.db.Close()
 }
 
 func closeRows(rows *sql.Rows) error {
@@ -553,8 +558,6 @@ func (i *Inventory) InsertBenchmarkConfiguration(ctx context.Context, benchParam
 				if bc != nil {
 					return 0, fmt.Errorf("Benchmark with provided URL and Description already exists (id %d)", bc.ID)
 				}
-
-				return int64(bc.ID), nil
 			}
 		}
 
@@ -577,7 +580,7 @@ func (i *Inventory) InsertBenchmarkConfiguration(ctx context.Context, benchParam
 		}
 	}
 
-	query = "INSERT INTO parameters(parameter,benchmark_configuration) VALUES(?,?,?)"
+	query = "INSERT INTO parameters(parameter,benchmark_configuration) VALUES(?,?)"
 
 	for _, params := range benchParameters.Parameters {
 		var i int
