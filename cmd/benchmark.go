@@ -14,31 +14,58 @@ import (
 )
 
 // benchmarkCmd represents the benchmark command
-var benchmarkCmd = &cobra.Command{
-	Use:   "benchmark",
-	Short: "Run HTTP benchmark",
-	Run: func(cmd *cobra.Command, args []string) {
-		viper.BindPFlag("save", cmd.Flags().Lookup("save"))
-		var err error
+func NewBenchmarkCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "benchmark",
+		Short: "Run HTTP benchmark",
+		Run: func(cmd *cobra.Command, args []string) {
+			viper.BindPFlag("save", cmd.Flags().Lookup("save"))
+			var err error
 
-		if viper.GetString("benchmark_config") != "" {
-			viper.SetConfigFile(viper.GetString("benchmark_config"))
+			if viper.GetString("benchmark_config") != "" {
+				viper.SetConfigFile(viper.GetString("benchmark_config"))
 
-			if err := viper.MergeInConfig(); err != nil {
-				log.Fatalf("Error on loading benchmark configuration %s: %v\n", viper.GetString("benchmark_config"), err)
+				if err := viper.MergeInConfig(); err != nil {
+					log.Fatalf("Error on loading benchmark configuration %s: %v\n", viper.GetString("benchmark_config"), err)
+				}
 			}
-		}
 
-		var benchmarkParams *katyusha.BenchmarkParameters
+			var benchmarkParams *katyusha.BenchmarkParameters
 
-		benchmarkParams, err = benchmarkOptionsToStruct()
-		if err != nil {
-			cmd.Usage()
-			log.Fatalf("Benchmark configuration error: %v", err)
-		}
+			benchmarkParams, err = benchmarkOptionsToStruct()
+			if err != nil {
+				cmd.Usage()
+				log.Fatalf("Benchmark configuration error: %v", err)
+			}
 
-		runBenchmark(benchmarkParams)
-	},
+			runBenchmark(benchmarkParams)
+		},
+	}
+
+	cmd.Flags().StringP("benchmark_config", "b", "", "Benchmark configuration file")
+	cmd.Flags().String("description", "Default benchmark description", "Benchmark description used in database")
+	cmd.Flags().String("host", "", "Host")
+	cmd.Flags().StringP("method", "m", "", "HTTP Method")
+	cmd.Flags().StringP("ca", "c", "", "CA path")
+	cmd.Flags().StringP("cert", "F", "", "Cert path")
+	cmd.Flags().StringP("key", "K", "", "Key path")
+	cmd.Flags().StringP("version_endpoint", "E", "", "Version endpoint, the results from this endpoint will be saved in test summary")
+	cmd.Flags().BoolP("save", "s", false, "Save benchmark configuration and result")
+	cmd.Flags().BoolP("insecure", "i", false, "TLS Skip verify")
+	cmd.Flags().DurationP("duration", "d", time.Duration(0), "Benchmark duration")
+	cmd.Flags().DurationP("keep_alive", "k", time.Duration(0), "HTTP Keep Alive")
+	cmd.Flags().DurationP("request_delay", "D", time.Duration(0), "Request delay")
+	cmd.Flags().DurationP("read_timeout", "R", time.Duration(0), "Read Timeout")
+	cmd.Flags().DurationP("write_timeout", "W", time.Duration(0), "Write Timeout")
+	cmd.Flags().IntP("requests", "r", 0, "Requests count")
+	cmd.Flags().IntP("connections", "C", 0, "Concurrent connections")
+	cmd.Flags().IntP("abort", "a", 0, "Number of connections after which benchmark will be aborted")
+	cmd.Flags().StringSliceP("header", "H", nil, "Header, can be used multiple times")
+	cmd.Flags().StringSliceP("parameter", "P", nil, "HTTP parameters, can be used multiple times")
+
+	viper.BindPFlags(cmd.Flags())
+
+	return cmd
 }
 
 func runBenchmark(benchmarkParams *katyusha.BenchmarkParameters) {
@@ -134,28 +161,7 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 }
 
 func init() {
-	benchmarkCmd.Flags().StringP("benchmark_config", "b", "", "Benchmark configuration file")
-	benchmarkCmd.Flags().String("description", "Default benchmark description", "Benchmark description used in database")
-	benchmarkCmd.Flags().String("host", "", "Host")
-	benchmarkCmd.Flags().StringP("method", "m", "", "HTTP Method")
-	benchmarkCmd.Flags().StringP("ca", "c", "", "CA path")
-	benchmarkCmd.Flags().StringP("cert", "F", "", "Cert path")
-	benchmarkCmd.Flags().StringP("key", "K", "", "Key path")
-	benchmarkCmd.Flags().StringP("version_endpoint", "E", "", "Version endpoint, the results from this endpoint will be saved in test summary")
-	benchmarkCmd.Flags().BoolP("save", "s", false, "Save benchmark configuration and result")
-	benchmarkCmd.Flags().BoolP("insecure", "i", false, "TLS Skip verify")
-	benchmarkCmd.Flags().DurationP("duration", "d", time.Duration(0), "Benchmark duration")
-	benchmarkCmd.Flags().DurationP("keep_alive", "k", time.Duration(0), "HTTP Keep Alive")
-	benchmarkCmd.Flags().DurationP("request_delay", "D", time.Duration(0), "Request delay")
-	benchmarkCmd.Flags().DurationP("read_timeout", "R", time.Duration(0), "Read Timeout")
-	benchmarkCmd.Flags().DurationP("write_timeout", "W", time.Duration(0), "Write Timeout")
-	benchmarkCmd.Flags().IntP("requests", "r", 0, "Requests count")
-	benchmarkCmd.Flags().IntP("connections", "C", 0, "Concurrent connections")
-	benchmarkCmd.Flags().IntP("abort", "a", 0, "Number of connections after which benchmark will be aborted")
-	benchmarkCmd.Flags().StringSliceP("header", "H", nil, "Header, can be used multiple times")
-	benchmarkCmd.Flags().StringSliceP("parameter", "P", nil, "HTTP parameters, can be used multiple times")
+	cmd := NewBenchmarkCmd()
 
-	viper.BindPFlags(benchmarkCmd.Flags())
-
-	rootCmd.AddCommand(benchmarkCmd)
+	rootCmd.AddCommand(cmd)
 }
