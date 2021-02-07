@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -8,7 +9,24 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tmwalaszek/katyusha/katyusha"
 )
+
+type Benchmark interface {
+	StartBenchmark(ctx context.Context) *katyusha.Summary
+}
+
+type Inventory interface {
+	Close() error
+	FindAllBenchmarks(ctx context.Context) ([]*katyusha.BenchmarkConfiguration, error)
+	FindBenchmarkByID(ctx context.Context, ID int64) (*katyusha.BenchmarkConfiguration, error)
+	FindBenchmark(ctx context.Context, URL string, description string) (*katyusha.BenchmarkConfiguration, error)
+	FindBenchmarkByURL(ctx context.Context, URL string) ([]*katyusha.BenchmarkConfiguration, error)
+	FindSummaryForBenchmark(ctx context.Context, bcID int64) ([]*katyusha.BenchmarkSummary, error)
+	DeleteBenchmark(ctx context.Context, bcID int64) error
+	InsertBenchmarkSummary(ctx context.Context, summary *katyusha.Summary, description string, bcId int64) error
+	InsertBenchmarkConfiguration(ctx context.Context, benchParameters *katyusha.BenchmarkParameters, description string) (int64, error)
+}
 
 var (
 	cfgFile string
