@@ -11,7 +11,7 @@ import (
 )
 
 // showCmd represents the show command
-func NewShowCmd() *cobra.Command {
+func NewShowCmd(inv Inventory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "show",
 		Short: "Show benchmark configuration or benchmark confiugration summaries",
@@ -22,11 +22,6 @@ func NewShowCmd() *cobra.Command {
 
 			var bcs []*katyusha.BenchmarkConfiguration
 			var err error
-
-			inv, err := katyusha.NewInventory(viper.GetString("db"))
-			if err != nil {
-				log.Fatalf("Can't create database file: %v", err)
-			}
 
 			if id := viper.GetInt64("id"); id != 0 {
 				bc, err := inv.FindBenchmarkByID(context.Background(), id)
@@ -79,9 +74,4 @@ func NewShowCmd() *cobra.Command {
 	viper.BindPFlags(cmd.Flags())
 
 	return cmd
-}
-
-func init() {
-	cmd := NewShowCmd()
-	inventoryCmd.AddCommand(cmd)
 }

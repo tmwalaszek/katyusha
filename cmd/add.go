@@ -6,21 +6,15 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tmwalaszek/katyusha/katyusha"
 )
 
 // addCmd represents the add command
-func NewAddCmd() *cobra.Command {
+func NewAddCmd(inv Inventory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add testcase",
 		Long:  "Add testcase. At the moment you can only add testcase from yaml file",
 		Run: func(cmd *cobra.Command, args []string) {
-			inv, err := katyusha.NewInventory(viper.GetString("db"))
-			if err != nil {
-				log.Fatalf("Can't create database file: %v", err)
-			}
-
 			viper.SetConfigFile(viper.GetString("file"))
 			if err := viper.MergeInConfig(); err != nil {
 				log.Fatalf("Error on loading benchmark configuration: %v\n", err)
@@ -47,9 +41,4 @@ func NewAddCmd() *cobra.Command {
 	viper.BindPFlags(cmd.Flags())
 
 	return cmd
-}
-
-func init() {
-	cmd := NewAddCmd()
-	inventoryCmd.AddCommand(cmd)
 }

@@ -6,21 +6,15 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tmwalaszek/katyusha/katyusha"
 )
 
-func NewRunCmd() *cobra.Command {
+func NewRunCmd(inv Inventory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run benchmark from inventory",
 		Run: func(cmd *cobra.Command, args []string) {
 			viper.BindPFlag("id", cmd.Flags().Lookup("id"))
 			viper.BindPFlag("save", cmd.Flags().Lookup("save"))
-
-			inv, err := katyusha.NewInventory(viper.GetString("db"))
-			if err != nil {
-				log.Fatalf("Can't initialize database: %v", err)
-			}
 
 			bc, err := inv.FindBenchmarkByID(context.Background(), viper.GetInt64("id"))
 			if err != nil {
@@ -44,9 +38,4 @@ func NewRunCmd() *cobra.Command {
 	viper.BindPFlags(cmd.Flags())
 
 	return cmd
-}
-
-func init() {
-	cmd := NewRunCmd()
-	inventoryCmd.AddCommand(cmd)
 }
