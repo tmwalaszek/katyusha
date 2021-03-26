@@ -1,11 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -26,43 +21,5 @@ func TestRootParams(t *testing.T) {
 
 	if inventory != home+"/.katyusha/inventory.db" {
 		t.Errorf("Default db location mismatch should be %s but is %s", home+"/.katyusha/inventory.db", inventory)
-	}
-}
-
-func TestBenchmark(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		response := struct {
-			Version string `json:"version"`
-		}{
-			Version: "0.1",
-		}
-
-		if r.URL.Path == "/" {
-			w.Write([]byte("Katyusha"))
-		}
-
-		if r.URL.Path == "/version" {
-			data, err := json.Marshal(response)
-			if err != nil {
-				t.Errorf("Could not marshal version endpoint response: %v", err)
-			}
-
-			w.Write(data)
-		}
-	}
-
-	b := bytes.NewBufferString("")
-
-	server := httptest.NewServer(http.HandlerFunc(handler))
-	defer server.Close()
-
-	cmd := NewBenchmarkCmd()
-	cmd.SetOut(b)
-	cmd.SetArgs([]string{"--host", server.URL})
-	cmd.Execute()
-
-	_, err := ioutil.ReadAll(b)
-	if err != nil {
-		t.Fatalf("Can't read from buffer: %v", err)
 	}
 }

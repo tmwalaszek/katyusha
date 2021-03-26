@@ -63,8 +63,6 @@ func init() {
 	viper.SetDefault("connections", Connections)
 	viper.SetDefault("abort", Abort)
 
-	cobra.OnInitialize(initConfig)
-
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -77,6 +75,21 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&dbFile, "db", defaultDbFile, "Inventory file location")
 
 	viper.BindPFlag("db", rootCmd.PersistentFlags().Lookup("db"))
+
+	cobra.OnInitialize(initConfig)
+
+	inv, err := katyusha.NewInventory(viper.GetString("db"))
+	if err != nil {
+		log.Fatalf("Can't create database file: %v", err)
+	}
+
+	showCmd := NewShowCmd(inv)
+	addCmd := NewAddCmd(inv)
+	runCmd := NewRunCmd(inv)
+	deleteCmd := NewDeleteCmd(inv)
+
+	inventoryCmd.AddCommand(showCmd, addCmd, runCmd, deleteCmd)
+	rootCmd.AddCommand(inventoryCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.

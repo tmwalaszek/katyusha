@@ -16,6 +16,7 @@ func NewShowCmd(inv Inventory) *cobra.Command {
 		Use:   "show",
 		Short: "Show benchmark configuration or benchmark confiugration summaries",
 		Run: func(cmd *cobra.Command, args []string) {
+			logger := log.New(cmd.ErrOrStderr(), "", log.LstdFlags)
 			// workaround for https://github.com/spf13/viper/issues/233
 			viper.BindPFlag("id", cmd.Flags().Lookup("id"))
 			idChanged := cmd.Flags().Lookup("id").Changed
@@ -26,40 +27,40 @@ func NewShowCmd(inv Inventory) *cobra.Command {
 			if id := viper.GetInt64("id"); id != 0 {
 				bc, err := inv.FindBenchmarkByID(context.Background(), id)
 				if err != nil {
-					log.Fatalf("Can't get benchamrks from the database: %v", err)
+					logger.Fatalf("Can't get benchamrks from the database: %v", err)
 				}
 
-				bcs = append(bcs, bc)
+				if bc != nil {
+					bcs = append(bcs, bc)
+				}
 			} else if url := viper.GetString("url"); url != "" {
 				bcs, err = inv.FindBenchmarkByURL(context.Background(), url)
 				if err != nil {
-					log.Fatalf("Can't get benchmark from the database: %v", err)
+					logger.Fatalf("Can't get benchmark from the database: %v", err)
 				}
 			} else if viper.GetBool("all") && !idChanged {
 				bcs, err = inv.FindAllBenchmarks(context.Background())
 				if err != nil {
-					log.Fatalf("Can't get benchamrks from the database: %v", err)
+					logger.Fatalf("Can't get benchamrks from the database: %v", err)
 				}
 			}
 
-			fmt.Printf("Found %d benchmarks\n", len(bcs))
+			fmt.Fprintf(cmd.OutOrStderr(), "Found %d benchmark(s)\n", len(bcs))
 
 			for i, bc := range bcs {
-				fmt.Printf("Benchmark [%d]\n", i+1)
-				fmt.Println(bc)
-				fmt.Printf("\n")
+				fmt.Fprintf(cmd.OutOrStderr(), "Benchmark [%d]\n", i+1)
+				fmt.Fprintln(cmd.OutOrStderr(), bc)
 
 				if viper.GetBool("full") {
 					summaries, err := inv.FindSummaryForBenchmark(context.Background(), bc.ID)
 					if err != nil {
-						log.Fatalf("Can't get benchmark summary: %v", err)
+						logger.Fatalf("Can't get benchmark summary: %v", err)
 					}
 
 					fmt.Println("Summaries: ")
 					for idx, summary := range summaries {
-						fmt.Printf("[%d] \n", idx+1)
-						fmt.Println(summary)
-						fmt.Printf("\n")
+						fmt.Fprintf(cmd.ErrOrStderr(), "[%d] \n", idx+1)
+						fmt.Fprintln(cmd.ErrOrStderr(), summary)
 					}
 				}
 			}

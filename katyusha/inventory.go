@@ -58,7 +58,10 @@ func (b BenchmarkConfiguration) String() string {
 		}
 	}
 
-	fmt.Fprintf(w, "Duration:\t%v\n", b.Duration)
+	if b.Duration != 0 {
+		fmt.Fprintf(w, "Duration:\t%v\n", b.Duration)
+	}
+
 	if b.KeepAlive != 0 {
 		fmt.Fprintf(w, "Keep Alive:\t%v\n", b.KeepAlive)
 	}

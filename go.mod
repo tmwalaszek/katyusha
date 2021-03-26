@@ -4,13 +4,12 @@ go 1.16
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
-	github.com/google/go-cmp v0.4.0
-	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/onsi/ginkgo v1.14.2 // indirect
-	github.com/onsi/gomega v1.10.4 // indirect
-	github.com/spf13/cobra v0.0.6
-	github.com/spf13/viper v1.6.2
-	github.com/valyala/fasthttp v1.9.0
-	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	github.com/golang/mock v1.4.4
+	github.com/google/go-cmp v0.5.4
+	github.com/mattn/go-sqlite3 v1.14.6
+	github.com/onsi/ginkgo v1.15.0 // indirect
+	github.com/onsi/gomega v1.10.5 // indirect
+	github.com/spf13/cobra v1.1.1
+	github.com/spf13/viper v1.7.1
+	github.com/valyala/fasthttp v1.20.0
 )
