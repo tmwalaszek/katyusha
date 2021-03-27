@@ -19,6 +19,7 @@ func NewBenchmarkCmd(bench Benchmark, inv Inventory) *cobra.Command {
 		Use:   "benchmark",
 		Short: "Run HTTP benchmark",
 		Run: func(cmd *cobra.Command, args []string) {
+			logger := log.New(cmd.ErrOrStderr(), "", log.LstdFlags)
 			viper.BindPFlag("save", cmd.Flags().Lookup("save"))
 			var err error
 
@@ -26,7 +27,7 @@ func NewBenchmarkCmd(bench Benchmark, inv Inventory) *cobra.Command {
 				viper.SetConfigFile(viper.GetString("benchmark_config"))
 
 				if err := viper.MergeInConfig(); err != nil {
-					log.Fatalf("Error on loading benchmark configuration %s: %v\n", viper.GetString("benchmark_config"), err)
+					logger.Fatalf("Error on loading benchmark configuration %s: %v\n", viper.GetString("benchmark_config"), err)
 				}
 			}
 
@@ -35,7 +36,7 @@ func NewBenchmarkCmd(bench Benchmark, inv Inventory) *cobra.Command {
 			benchmarkParams, err = benchmarkOptionsToStruct()
 			if err != nil {
 				cmd.Usage()
-				log.Fatalf("Benchmark configuration error: %v", err)
+				logger.Fatalf("Benchmark configuration error: %v", err)
 			}
 
 			//runBenchmark(benchmarkParams)
@@ -49,7 +50,7 @@ func NewBenchmarkCmd(bench Benchmark, inv Inventory) *cobra.Command {
 
 			go func() {
 				<-c
-				log.Print("Received signal and will stop benchmark")
+				logger.Print("Received signal and will stop benchmark")
 				cancel()
 			}()
 
@@ -57,20 +58,20 @@ func NewBenchmarkCmd(bench Benchmark, inv Inventory) *cobra.Command {
 			if viper.GetBool("save") {
 				inv, err = katyusha.NewInventory(viper.GetString("db"))
 				if err != nil {
-					log.Fatalf("Could not create inventory: %v", err)
+					logger.Fatalf("Could not create inventory: %v", err)
 				}
 			}
 
 			benchmark, err := katyusha.NewBenchmark(benchmarkParams)
 			if err != nil {
-				log.Fatalf("Error while creating benchmark: %v", err)
+				logger.Fatalf("Error while creating benchmark: %v", err)
 			}
 
 			var bcID int64
 			if viper.GetBool("save") {
 				bcID, err = inv.InsertBenchmarkConfiguration(ctx, benchmarkParams, description)
 				if err != nil {
-					log.Fatalf("Error inserting benchmark configuration: %v", err)
+					logger.Fatalf("Error inserting benchmark configuration: %v", err)
 				}
 			}
 
@@ -80,7 +81,7 @@ func NewBenchmarkCmd(bench Benchmark, inv Inventory) *cobra.Command {
 			if viper.GetBool("save") {
 				err = inv.InsertBenchmarkSummary(ctx, summary, "", bcID)
 				if err != nil {
-					log.Fatalf("Error saving summary: %v", err)
+					logger.Fatalf("Error saving summary: %v", err)
 				}
 			}
 		},
@@ -156,8 +157,3 @@ func benchmarkOptionsToStruct() (*katyusha.BenchmarkParameters, error) {
 	}, nil
 }
 
-func init() {
-	cmd := NewBenchmarkCmd()
-
-	rootCmd.AddCommand(cmd)
-}
