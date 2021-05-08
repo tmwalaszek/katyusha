@@ -379,9 +379,13 @@ MAIN:
 	return summary
 }
 
+func NewBenchmark() *Benchmark {
+	return &Benchmark{}
+}
+
 // NewBenchmark configure Benchmark and return its.
 // It will setup fasthttp.Client and check benchmark requests parameters
-func NewBenchmark(reqParams *BenchmarkParameters) (*Benchmark, error) {
+func (b *Benchmark) ConfigureBenchmark(reqParams *BenchmarkParameters) error {
 	var tlsConfig tls.Config
 
 	if reqParams.SkipVerify {
@@ -390,7 +394,7 @@ func NewBenchmark(reqParams *BenchmarkParameters) (*Benchmark, error) {
 		if reqParams.CA != "" {
 			caCert, err := ioutil.ReadFile(reqParams.CA)
 			if err != nil {
-				return nil, fmt.Errorf("Error reading CA file %s: %w", reqParams.CA, err)
+				return fmt.Errorf("Error reading CA file %s: %w", reqParams.CA, err)
 			}
 
 			caCertPool := x509.NewCertPool()
@@ -401,7 +405,7 @@ func NewBenchmark(reqParams *BenchmarkParameters) (*Benchmark, error) {
 			if reqParams.Cert != "" && reqParams.Key != "" {
 				cert, err := tls.LoadX509KeyPair(reqParams.Cert, reqParams.Key)
 				if err != nil {
-					return nil, fmt.Errorf("Could not load X509 key pair: %w", err)
+					return fmt.Errorf("Could not load X509 key pair: %w", err)
 				}
 
 				tlsConfig.Certificates = []tls.Certificate{cert}
@@ -418,12 +422,11 @@ func NewBenchmark(reqParams *BenchmarkParameters) (*Benchmark, error) {
 		TLSConfig:           &tlsConfig,
 	}
 
-	b := &Benchmark{
-		BenchmarkParameters: *reqParams,
-		client:              client,
-	}
+	b.BenchmarkParameters = *reqParams
+	b.client = client
 
-	return b, nil
+	return nil
+
 }
 
 func (b *Benchmark) receiveTargetVersion() (string, error) {

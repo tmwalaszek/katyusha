@@ -8,11 +8,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewRunCmd(inv Inventory) *cobra.Command {
+func NewRunCmd(benchmark Benchmark, inv Inventory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run benchmark from inventory",
 		Run: func(cmd *cobra.Command, args []string) {
+			logger := log.New(cmd.ErrOrStderr(), "", log.LstdFlags)
 			viper.BindPFlag("id", cmd.Flags().Lookup("id"))
 			viper.BindPFlag("save", cmd.Flags().Lookup("save"))
 
@@ -25,7 +26,7 @@ func NewRunCmd(inv Inventory) *cobra.Command {
 				log.Fatalf("Benchmark %d does not exists", viper.GetInt64("id"))
 			}
 
-			runBenchmark(&bc.BenchmarkParameters)
+			runBenchmark(benchmark, inv, &bc.BenchmarkParameters, logger)
 		},
 	}
 

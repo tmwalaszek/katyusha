@@ -14,6 +14,7 @@ import (
 
 type Benchmark interface {
 	StartBenchmark(ctx context.Context) *katyusha.Summary
+	ConfigureBenchmark(*katyusha.BenchmarkParameters) error
 }
 
 type Inventory interface {
@@ -78,6 +79,7 @@ func init() {
 
 	cobra.OnInitialize(initConfig)
 
+	benchmark := katyusha.NewBenchmark()
 	inv, err := katyusha.NewInventory(viper.GetString("db"))
 	if err != nil {
 		log.Fatalf("Can't create database file: %v", err)
@@ -85,11 +87,12 @@ func init() {
 
 	showCmd := NewShowCmd(inv)
 	addCmd := NewAddCmd(inv)
-	runCmd := NewRunCmd(inv)
+	runCmd := NewRunCmd(benchmark, inv)
 	deleteCmd := NewDeleteCmd(inv)
+	benchmarkCmd := NewBenchmarkCmd(benchmark, inv)
 
 	inventoryCmd.AddCommand(showCmd, addCmd, runCmd, deleteCmd)
-	rootCmd.AddCommand(inventoryCmd)
+	rootCmd.AddCommand(inventoryCmd, benchmarkCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
